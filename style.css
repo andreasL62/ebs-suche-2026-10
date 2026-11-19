@@ -236,3 +236,5 @@ mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padd
 /* Version 2026-10: Ersatz-Hinweis als Knopf */
 .badge.ersb { border-color: var(--accent); color: var(--accent); font-weight: 600; cursor: pointer; }
 .badge.ersb:hover { background: var(--accent); color: var(--accent-ink); }
+.hit, .tocrow { color: var(--text); -webkit-tap-highlight-color: transparent; }
+.tocrow:focus-visible { border-color: var(--accent); outline: none; }

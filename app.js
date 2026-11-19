@@ -315,8 +315,18 @@ function showMore() {
   }
   el.list.append(frag);
 }
+/* Anklickbare Karte als <div> statt <button>: in Firefox erreichen Klicks auf Elemente innerhalb eines
+   <button> (z. B. „Ersetzt durch Ebs …“) sonst nie das innere Element. */
+function clickBox(cls) {
+  const b = document.createElement('div'); b.className = cls;
+  b.setAttribute('role', 'button'); b.tabIndex = 0;
+  b.addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target === b) { e.preventDefault(); b.click(); }
+  });
+  return b;
+}
 function resultEl(r, i) {
-  const b = document.createElement('button'); b.className = 'hit'; b.type = 'button';
+  const b = clickBox('hit');
   b.onclick = () => openViewer(i);
   const c = document.createElement('img'); c.className = 'thumb'; c.dataset.page = r.p.n;
   c.alt = ''; c.decoding = 'async';
@@ -971,7 +981,7 @@ function openToc() {
 }
 function closeToc() { $('toc').hidden = true; document.body.classList.remove('viewing'); }
 function tocRow(main, sub, count, onClick, extra = '') {
-  const b = document.createElement('button'); b.type = 'button'; b.className = 'tocrow';
+  const b = clickBox('tocrow');
   b.innerHTML = `<span class="tmain">${main}</span>${count != null ? `<span class="tcount">${count}</span>` : ''}`
     + (sub ? `<span class="tsub">${sub}</span>` : '') + extra;
   b.onclick = onClick;
