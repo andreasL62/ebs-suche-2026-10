@@ -699,6 +699,7 @@ function showPage(n) {
   loadPage();
 }
 function closeViewer() {
+  if (!$("shareWin").hidden) closeShare();
   pageSeq++;
   bgTask?.cancel(); hiTask?.cancel();
   el.viewer.hidden = true; document.body.classList.remove('viewing');
@@ -733,6 +734,7 @@ async function loadPage() {
   const seq = ++pageSeq;
   bgTask?.cancel(); hiTask?.cancel(); clearTimeout(hiTimer);
   S.region = null; S.rects = []; S.rectCursor = -1;
+  if (!$("shareWin").hidden) shareReset();         // andere Seite: vorbereitetes Bild passt nicht mehr
   el.hi.style.display = 'none'; el.bg.style.visibility = 'hidden'; el.hl.textContent = '';
   el.viewer.classList.add('loading'); msg('Lade Zeichnung …');
   updateTitle();
@@ -1093,6 +1095,83 @@ sx.addEventListener('touchmove', e => {
   setScaleAnchored(pinch.s0 * m.d / pinch.d0, pinch.px, pinch.py, m.x, m.y);
 }, { passive: false });
 sx.addEventListener('touchend', e => { if (e.touches.length < 2) pinch = null; });
+
+/* ---------- Teilen: sichtbarer Ausschnitt oder ganzes Blatt als Bild ----------
+   Zweistufig (erst Bild erzeugen, dann „Teilen“ antippen): iOS erlaubt das Teilen-Menü nur direkt nach einem Tippen,
+   das Erzeugen eines großen Bildes dauert dafür zu lange. */
+const SH = { file: null, url: '', text: '', seq: 0 };
+function shareLabel() {
+  const p = S.pages[S.cur - 1] || {};
+  const head = p.nr ? fmtNr(p) : (typeof nodeTitle === 'function' ? nodeTitle(p.k) : '');
+  return { head, text: [head, p.ti, `PDF-Seite ${S.cur}`].filter(Boolean).join(' – '),
+    base: (head || 'Seite').replace(/[^\w.\-]+/g, '_') + `_S${S.cur}` };
+}
+function shareReset() {
+  SH.seq++;
+  if (SH.url) URL.revokeObjectURL(SH.url);
+  SH.file = null; SH.url = '';
+  $('shareImg').hidden = true; $('shareImg').removeAttribute('src');
+  $('shareGo').disabled = true; $('shareSave').disabled = true;
+  $('shareMsg').textContent = 'Was soll geteilt werden?';
+}
+function openShare() {
+  if (!S.page) return;
+  shareReset();
+  $('shareWin').hidden = false;
+}
+function closeShare() { $('shareWin').hidden = true; shareReset(); }
+async function makeShare(whole) {
+  const page = S.page; if (!page) return;
+  const seq = ++SH.seq;
+  const bw = S.base.width, bh = S.base.height, sx = el.scroller, sc = S.scale;
+  let x = 0, y = 0, w = bw, h = bh;
+  if (!whole) {
+    x = Math.max(0, (sx.scrollLeft - el.sheet.offsetLeft) / sc);
+    y = Math.max(0, (sx.scrollTop - el.sheet.offsetTop) / sc);
+    w = Math.min(bw - x, sx.clientWidth / sc); h = Math.min(bh - y, sx.clientHeight / sc);
+  }
+  // ganzes Blatt bis 300 dpi, Ausschnitt mind. 2400 px und so scharf wie am Bildschirm; Obergrenze wegen Speicher (iPhone)
+  const maxPx = IOS ? 9e6 : 16e6;
+  let k = whole ? 300 / 72 : Math.max(2.5, sc * (window.devicePixelRatio || 1), 2400 / Math.max(w, h));
+  if (w * k * h * k > maxPx) k = Math.sqrt(maxPx / (w * h));
+  $('shareMsg').textContent = 'Bild wird erzeugt …';
+  $('shareGo').disabled = true; $('shareSave').disabled = true;
+  const cv = document.createElement('canvas');
+  cv.width = Math.max(1, Math.round(w * k)); cv.height = Math.max(1, Math.round(h * k));
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+  try {
+    await page.render({ canvasContext: ctx, viewport: page.getViewport({ scale: k }), transform: [1, 0, 0, 1, -x * k, -y * k], intent: 'print' }).promise;
+  } catch (e) { freeCanvas(cv); if (seq === SH.seq) $('shareMsg').textContent = 'Bild konnte nicht erzeugt werden.'; return; }
+  const blob = await new Promise(r => cv.toBlob(r, "image/jpeg", 0.88));
+  const dims = `${cv.width}×${cv.height} px`;
+  freeCanvas(cv);
+  if (seq !== SH.seq || !blob) return;
+  const L = shareLabel();
+  SH.text = L.text;
+  SH.file = new File([blob], `${L.base}_${whole ? 'Blatt' : 'Ausschnitt'}.jpg`, { type: 'image/jpeg' });
+  if (SH.url) URL.revokeObjectURL(SH.url);
+  SH.url = URL.createObjectURL(blob);
+  $('shareImg').src = SH.url; $('shareImg').hidden = false;
+  const canShare = !!(navigator.canShare && navigator.canShare({ files: [SH.file] }));
+  $('shareGo').disabled = !canShare; $('shareGo').hidden = !canShare;
+  $('shareSave').disabled = false;
+  $("shareMsg").textContent = `${whole ? "Ganzes Blatt" : "Ausschnitt"} · ${dims} · ${(blob.size / 1048576).toLocaleString('de-DE', { maximumFractionDigits: 1 })} MB`;
+}
+$('vShare').onclick = () => ($('shareWin').hidden ? openShare() : closeShare());
+$('shareClose').onclick = closeShare;
+$('sharePart').onclick = () => makeShare(false);
+$('shareWhole').onclick = () => makeShare(true);
+$('shareGo').onclick = async () => {
+  if (!SH.file) return;
+  try { await navigator.share({ files: [SH.file], title: shareLabel().head || 'Zeichnung', text: SH.text }); }
+  catch (e) { if (e && e.name !== 'AbortError') $('shareMsg').textContent = 'Teilen nicht möglich – „Speichern“ verwenden.'; }
+};
+$('shareSave').onclick = () => {
+  if (!SH.file) return;
+  const a = document.createElement('a'); a.href = SH.url; a.download = SH.file.name;
+  document.body.append(a); a.click(); a.remove();
+};
 
 /* Wischen mit einem Finger: nach links = nächste Seite, nach rechts = vorige Seite.
    Ist die Zeichnung vergrößert, wird zuerst bis zum Rand verschoben – erst am Rand blättert das Wischen. */

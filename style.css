@@ -238,3 +238,21 @@ mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padd
 .badge.ersb:hover { background: var(--accent); color: var(--accent-ink); }
 .hit, .tocrow { color: var(--text); -webkit-tap-highlight-color: transparent; }
 .tocrow:focus-visible { border-color: var(--accent); outline: none; }
+
+/* Teilen-Fenster */
+#shareWin { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 41;
+  width: min(340px, calc(100vw - 24px)); background: var(--panel); color: var(--text); border: 1px solid var(--line);
+  border-radius: 14px; box-shadow: 0 6px 24px rgba(0,0,0,.35); padding: 8px 12px 12px; }
+#shareWin[hidden] { display: none; }
+.sharehead { display: flex; align-items: center; font-weight: 700; padding: 2px 0 8px; }
+#shareClose { margin-left: auto; border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; }
+#shareWin .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#shareWin .row2 button { height: 40px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; touch-action: manipulation; }
+#shareWin .row2 button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+#shareWin .row2 button[hidden] { display: none; }
+#shareWin .row2 button:disabled { opacity: .45; cursor: default; }
+#shareMsg { color: var(--muted); font-size: 12.5px; margin: 8px 0; }
+#shareImg { display: block; max-width: 100%; max-height: 28vh; margin: 0 auto 10px; border: 1px solid var(--line); background: #fff; object-fit: contain; }
+#shareImg[hidden] { display: none; }
+/* iPhone: langes Drücken auf die Zeichnung öffnet kein Kopieren/Teilen-Menü des Browsers */
+#scroller, #sheet, #sheet canvas { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }

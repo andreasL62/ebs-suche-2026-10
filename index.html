@@ -117,6 +117,7 @@
       <button id="vFit" title="Ganze Seite (0)">Ganz</button>
       <button id="vZoomIn" title="Vergrößern (+)" aria-label="Vergrößern">+</button>
       <button id="vSpot" class="primary" title="Zur nächsten Fundstelle zoomen (Enter)">Fundstelle</button>
+      <button id="vShare" title="Sichtbaren Ausschnitt oder ganzes Blatt als Bild teilen">Teilen</button>
       <button id="vGoto" class="primary" title="Blatt nach Ebs-Nummer öffnen (#)">Ebs-Nr.</button>
     </div>
   </div>
@@ -144,6 +145,20 @@
     <button type="button" data-k="clear" aria-label="Nummer löschen">C</button><button type="button" data-k="0">0</button>
     <button type="button" data-k="back" aria-label="Ziffer löschen">⌫</button>
     <button type="button" data-k="ok" class="ok">Fertig</button>
+  </div>
+</div>
+
+<div id="shareWin" hidden role="dialog" aria-label="Zeichnung teilen">
+  <div class="sharehead">Teilen <button id="shareClose" type="button" aria-label="Schließen">✕</button></div>
+  <div class="row2">
+    <button id="sharePart" type="button">Sichtbarer Ausschnitt</button>
+    <button id="shareWhole" type="button">Ganzes Blatt</button>
+  </div>
+  <div id="shareMsg"></div>
+  <img id="shareImg" alt="Vorschau" hidden>
+  <div class="row2">
+    <button id="shareGo" type="button" class="primary" disabled>Teilen …</button>
+    <button id="shareSave" type="button" disabled>Speichern</button>
   </div>
 </div>
 
