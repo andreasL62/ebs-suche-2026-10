@@ -465,7 +465,7 @@ function helpEl() {
     <li><b>Inhalt</b>: wie die Lesezeichen der PDF – Ebs-Hauptgruppen → Gruppe → Blatt, außerdem Re 250 NBS, Technische Mitteilungen, Technische Freigaben, Montageanleitungen, Ebgw u. a.</li>
     <li>Bei ersetzten Blättern steht „Ersetzt durch Ebs …“ – antippen öffnet das neue Blatt.</li>
     <li><b>Filter</b>: Bauarten („Verwendbar für“, z. B. Re 200, S-Bahn) und Gültigkeitsvermerke („Für Neubau ungültig“ …) ein- oder ausblenden.</li>
-    <li>In der Zeichnung: <b>Fundstelle</b> zoomt nacheinander auf jede Markierung. <b>Ebs-Nr.</b> öffnet ein verschiebbares Fenster mit Ziffernblock: Nummer eintippen (Punkte kommen automatisch), das Blatt öffnet sich (immer Blatt 1), „← zurück zu …“ führt zurück. Zoomen mit Mausrad, Doppelklick oder zwei Fingern.</li>
+    <li>In der Zeichnung: <b>Fundstelle</b> zoomt nacheinander auf jede Markierung. <b>Ebs-Nr.</b> öffnet ein verschiebbares Fenster mit Ziffernblock: Nummer eintippen (Punkte kommen automatisch), das Blatt öffnet sich (immer Blatt 1), „← zurück zu …“ führt zurück. Zoomen mit Mausrad, Doppelklick oder zwei Fingern. Auf Handy und Tablet: nach links wischen = nächste Seite, nach rechts = vorige Seite.</li>
   </ul>`;
   return d;
 }
@@ -1083,6 +1083,24 @@ sx.addEventListener('touchmove', e => {
   setScaleAnchored(pinch.s0 * m.d / pinch.d0, pinch.px, pinch.py, m.x, m.y);
 }, { passive: false });
 sx.addEventListener('touchend', e => { if (e.touches.length < 2) pinch = null; });
+
+/* Wischen mit einem Finger: nach links = nächste Seite, nach rechts = vorige Seite.
+   Ist die Zeichnung vergrößert, wird zuerst bis zum Rand verschoben – erst am Rand blättert das Wischen. */
+let swipe = null;
+sx.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) { swipe = null; return; }
+  const t = e.touches[0], max = sx.scrollWidth - sx.clientWidth;
+  swipe = { x: t.clientX, y: t.clientY, t: Date.now(), atLeft: S.fit || sx.scrollLeft <= 2, atRight: S.fit || sx.scrollLeft >= max - 2 };
+}, { passive: true });
+sx.addEventListener('touchmove', e => { if (swipe && e.touches.length !== 1) swipe = null; }, { passive: true });
+sx.addEventListener('touchend', e => {
+  const s = swipe; swipe = null;
+  if (!s || pinch || e.touches.length) return;
+  const t = e.changedTouches[0], dx = t.clientX - s.x, dy = t.clientY - s.y;
+  if (Date.now() - s.t > 700 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+  if (dx < 0 && s.atRight && S.cur < S.numPages) { gotoPage(1); flash(`Seite ${S.cur}`); }
+  else if (dx > 0 && s.atLeft && S.cur > 1) { gotoPage(-1); flash(`Seite ${S.cur}`); }
+});
 document.addEventListener('gesturestart', e => e.preventDefault());
 
 let rsT = 0;
