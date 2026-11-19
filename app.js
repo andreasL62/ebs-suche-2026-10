@@ -363,6 +363,10 @@ document.addEventListener('click', ev => {
   if (!b) return;
   ev.stopPropagation(); ev.preventDefault();
   const nr = b.dataset.ers;
+  if (!$('toc').hidden) {                  // aus dem Inhalt heraus: Inhalt schließen, Blatt öffnen
+    if (!findSheet(nr)) { alert(`Ebs ${nr} ist in dieser PDF nicht enthalten.`); return; }
+    $('toc').hidden = true;
+  }
   if (!el.viewer.hidden) { if (!followRef(nr)) flash(`Ebs ${nr} ist in dieser PDF nicht enthalten.`); return; }
   const t = findSheet(nr);
   if (!t) { alert(`Ebs ${nr} ist in dieser PDF nicht enthalten.`); return; }
