@@ -79,6 +79,8 @@ a { color: var(--accent); }
 #rl .ref { position: absolute; pointer-events: auto; padding: 0; background: rgba(31, 95, 168, .08);
   border: 1.5px solid rgba(31, 95, 168, .75); border-radius: 3px; cursor: pointer; }
 #rl .ref:hover { background: rgba(31, 95, 168, .25); }
+#rl .ref.lnk { border: 0; border-bottom: 2px solid rgba(31, 122, 74, .7); border-radius: 2px; background: rgba(31, 122, 74, .10); }
+#rl .ref.lnk:hover, #rl .ref.lnk:active { background: rgba(31, 122, 74, .30); }
 #rl .ref.missing { border-style: dashed; border-color: rgba(120, 120, 120, .6); background: transparent; }
 .vbar .backbtn { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
 .vbar .backbtn[hidden] { display: none; }

@@ -683,7 +683,47 @@ function navBack() {
   showPage(s.page);
   return true;
 }
-function drawRefs() { el.rl.textContent = ''; }   // antippbare Rahmen abgeschaltet (OCR-Positionen zu ungenau)
+function drawRefs() { el.rl.textContent = ''; S.links = []; }   // OCR-Seiten: keine antippbaren Rahmen (Positionen zu ungenau)
+/* Seiten mit echtem PDF-Text (v. a. die Verzeichnis-Tabellen): Ebs-Nummern wie „Ers. d. Ebs 01.01.05“ oder
+   die blauen Zeichnungsnummern antippbar machen. Auf anderen Seiten nur Nummern mit „Ebs“ davor. */
+const LINK_NR = /(?<![\d.])(\d{2}\.\d{2}\.\d{2})(?![.\d])/g;
+function linkRects(items, vp, pinfo) {
+  const out = [];
+  for (const it of items) {
+    const s = it.str || '';
+    if (s.length < 8 || (!pinfo?.verz && !/ebs/i.test(s))) continue;
+    let tx, fh, ca, sa, x0, y0, w;
+    for (const m of s.matchAll(LINK_NR)) {
+      const nr = m[1];
+      if (nr === pinfo?.nr || !findSheet(nr)) continue;
+      if (!tx) {
+        tx = pdfjsLib.Util.transform(vp.transform, it.transform);
+        fh = Math.hypot(tx[2], tx[3]) || 1;
+        const a = Math.atan2(tx[1], tx[0]); ca = Math.cos(a); sa = Math.sin(a);
+        x0 = tx[4] + fh * sa; y0 = tx[5] - fh * ca;
+        w = it.width || fh * 0.55 * s.length;
+      }
+      // „Ebs “ davor mit in die Fläche nehmen (größeres Ziel zum Antippen)
+      const pre = /ebs\s*$/i.exec(s.slice(0, m.index));
+      const i0 = pre ? pre.index : m.index, i1 = m.index + nr.length;
+      const t0 = w * i0 / s.length, t1 = w * i1 / s.length, u = fh * 1.15;
+      const pts = [[t0, 0], [t1, 0], [t0, u], [t1, u]].map(([t, v]) => [x0 + t * ca - v * sa, y0 + t * sa + v * ca]);
+      const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+      const bx = Math.min(...xs), by = Math.min(...ys);
+      out.push({ nr, x: bx, y: by, w: Math.max(...xs) - bx, h: Math.max(...ys) - by });
+    }
+  }
+  return out;
+}
+function drawLinks(links) {
+  S.links = links; el.rl.textContent = '';
+  for (const l of links) {
+    const d = document.createElement('div');
+    d.className = 'ref lnk'; d.dataset.ers = l.nr; d.title = `Ebs ${l.nr} öffnen`;
+    el.rl.append(d);
+  }
+  layout();
+}
 let flashT = 0;
 function flash(text) { msg(text); clearTimeout(flashT); flashT = setTimeout(() => msg(''), 2500); }
 
@@ -754,9 +794,11 @@ async function loadPage() {
   layout(); el.scroller.scrollTo(0, 0);
 
   const pinfo = S.pages[S.cur - 1];
+  const tcP = pinfo?.ocr ? null : page.getTextContent();
+  tcP?.then(tc => { if (seq === pageSeq) drawLinks(linkRects(tc.items, S.base, pinfo)); }).catch(() => {});
   const rectsP = pinfo?.ocr
     ? S.bundle.words(S.cur).then(w => ocrRects(w, S.inc))
-    : page.getTextContent().then(tc => hitRects(tc.items, S.inc, S.base));
+    : tcP.then(tc => hitRects(tc.items, S.inc, S.base));
   rectsP.then(rects => {
     if (seq !== pageSeq) return;
     S.rects = rects;
@@ -795,11 +837,11 @@ function layout() {
     d.style.width = r.w * sc + 4 + 'px'; d.style.height = r.h * sc + 4 + 'px';
     d.style.transform = r.a ? `rotate(${r.a}rad)` : '';
   }
-  const refs = (S.pages[S.cur - 1] || {}).refs || [], rk = el.rl.children;
-  for (let i = 0; i < rk.length && i < refs.length; i++) {
-    const r = refs[i], d = rk[i];
-    d.style.left = r[2] * sc - 2 + 'px'; d.style.top = r[3] * sc - 2 + 'px';
-    d.style.width = r[4] * sc + 4 + 'px'; d.style.height = r[5] * sc + 4 + 'px';
+  const links = S.links || [], rk = el.rl.children;
+  for (let i = 0; i < rk.length && i < links.length; i++) {
+    const r = links[i], d = rk[i];
+    d.style.left = r.x * sc - 2 + 'px'; d.style.top = r.y * sc - 2 + 'px';
+    d.style.width = r.w * sc + 4 + 'px'; d.style.height = r.h * sc + 4 + 'px';
   }
 }
 
