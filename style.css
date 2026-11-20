@@ -258,3 +258,13 @@ mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padd
 #shareImg[hidden] { display: none; }
 /* iPhone: langes Drücken auf die Zeichnung öffnet kein Kopieren/Teilen-Menü des Browsers */
 #scroller, #sheet, #sheet canvas { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+/* Hinweis auf neue App-Version */
+#updBar { position: fixed; left: 50%; top: calc(8px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 60;
+  display: flex; align-items: center; gap: 10px; width: max-content; max-width: calc(100vw - 24px);
+  background: var(--accent); color: var(--accent-ink); border-radius: 12px; padding: 6px 6px 6px 14px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.35); font-size: 14px; }
+#updBar[hidden] { display: none; }
+#updGo { height: 34px; padding: 0 14px; border: 0; border-radius: 9px; background: var(--accent-ink); color: var(--accent);
+  font-weight: 700; font-size: 14px; cursor: pointer; touch-action: manipulation; }
+#updLater { height: 34px; width: 30px; border: 0; background: none; color: var(--accent-ink); font-size: 15px; cursor: pointer; }

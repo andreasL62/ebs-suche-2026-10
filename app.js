@@ -1465,6 +1465,17 @@ syncClear();
 $('nq').value = N.digits ? gotoFmt(N.digits) : ''; $('nqClear').hidden = !N.digits;
 boot();
 
+/* Neue App-Version: der neue Service Worker übernimmt sofort, die laufende Seite hat aber noch den alten Code.
+   Dann Hinweis mit Knopf „Neu starten“ statt die App zweimal öffnen zu müssen. */
 if ('serviceWorker' in navigator && window.isSecureContext) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController) $('updBar').hidden = false;
+  });
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    // iPhone/Android: App kommt aus dem Hintergrund zurück, ohne neu zu laden – dann auch nach Updates sehen
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
+  }).catch(() => {});
 }
+$('updGo').onclick = () => location.reload();
+$('updLater').onclick = () => { $('updBar').hidden = true; };
