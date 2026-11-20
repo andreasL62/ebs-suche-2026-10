@@ -74,8 +74,11 @@ async function loadData(bundle) {
   S.validLabels = idx.validLabels || {};
   const uc = new Map();
   for (const p of S.pages) for (const u of p.use) uc.set(u, (uc.get(u) || 0) + 1);
-  S.useTags = [...uc.entries()].sort((a, b) => (a[0].startsWith('Re ') === b[0].startsWith('Re ') ? 0 : a[0].startsWith('Re ') ? -1 : 1)
-    || (parseInt(a[0].slice(3)) || 0) - (parseInt(b[0].slice(3)) || 0) || a[0].localeCompare(b[0]));
+  // Reihenfolge wie in der Übersicht der Regelbauarten im Zeichnungsverzeichnis
+  const ORDER = ['Re 330', 'Re 250', 'Re 200 mod', 'Re 200', 'Re 160', 'Re 160 S-Bahn', 'Re 100', 'Re 75', 'S-Bahn', 'Gs-OL'];
+  const ord = t => { const i = ORDER.indexOf(t); return i < 0 ? 99 : i; };
+  S.useTags = [...uc.entries()].sort((a, b) => ord(a[0]) - ord(b[0]) || a[0].localeCompare(b[0]));
+  for (const u of [...F.offUse]) if (!uc.has(u)) F.offUse.delete(u);   // Filter aus älteren Suchdaten
   buildFilterUI();
   const noText = S.pages.filter(p => !p.s).length;
   S.statusBase = `${S.numPages} Seiten durchsuchbar` + (noText ? ` · ${noText} ohne Text` : '') + (idx.partial ? ' · TEST-Index (unvollständig)' : '');
