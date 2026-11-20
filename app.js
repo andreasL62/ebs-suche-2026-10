@@ -664,7 +664,8 @@ function keepInView(w) {
   const nq = $('nq');
   if (touchDevice) {
     nq.readOnly = true; nq.inputMode = 'none';
-    nq.addEventListener('click', () => openGoto('list'));
+    // Ziffernauswahl (Ziffer 1 von 6 …) reicht zum Antippen – kein Ziffernblock; den gibt es nur in der Zeichnung
+    nq.addEventListener('click', () => { N.focus = true; renderGuide(); });
   }
   nq.addEventListener('focus', () => { N.focus = true; renderGuide(); });
   nq.addEventListener('blur', () => { N.focus = false; setTimeout(renderGuide, 250); });
