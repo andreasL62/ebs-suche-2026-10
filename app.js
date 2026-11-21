@@ -373,8 +373,10 @@ document.addEventListener('click', ev => {
   if (!el.viewer.hidden) { if (!followRef(nr)) flash(`Ebs ${nr} ist in dieser PDF nicht enthalten.`); return; }
   const t = findSheet(nr);
   if (!t) { alert(`Ebs ${nr} ist in dieser PDF nicht enthalten.`); return; }
-  S.results = [{ p: t, score: 0 }]; S.inc = [];
-  openViewer(0);
+  // Trefferliste NICHT ersetzen – sonst passen die angezeigten Einträge nach „zurück“ nicht mehr zu S.results
+  if (G.mode === 'list') closeGoto();
+  S.hitPos = -1; S.nav = [];
+  showPage(t.n);
 }, true);
 
 /* ---------- Filter: Hauptgruppe, Bauarten ("Verwendbar für"), Gültigkeitsvermerke ---------- */
