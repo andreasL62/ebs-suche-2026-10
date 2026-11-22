@@ -10,7 +10,19 @@ body.regopen { overflow: hidden; }
 #reg .rsub { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
 #reg .rbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-top: 8px; }
 #reg .rbar label { font-size: 11px; color: var(--muted); display: flex; flex-direction: column; }
-#reg #rKw { max-width: 260px; }
+#reg .rhead { padding-bottom: 6px; }
+#reg .rrow1 #rMoreB { width: 38px; justify-content: center; font-size: 18px; padding: 0; }
+#reg .rmore { margin-top: 6px; }
+#reg .rmore .rbar { margin-top: 4px; }
+#reg .rbar label.rfile { font-size: 15px; color: var(--text); flex-direction: row; }
+#reg select.rkwsel { display: block; width: 100%; margin-top: 6px; }
+#reg .rbar2 { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+#reg .rbar2 #rQ { flex: 1; }
+#reg .rtin { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); font-size: 13px; }
+#reg .rbar2 input[type=number] { width: 58px; }
+#reg #rT:placeholder-shown { border-color: #d4a017; background: #fff7dc; }
+#reg .rhead input, #reg .rhead select { font-size: 16px; }
+@media (max-width: 600px) { #reg .rtitle { display: none; } #reg .rtabs { gap: 3px; } #reg .rtabs button { padding: 6px 8px; font-size: 13px; flex: 0 0 auto; } }
 #reg input, #reg select, #reg textarea { font: inherit; font-size: 15px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; min-width: 0; }
 #reg input[type=number] { width: 92px; }
 #reg input[type=checkbox] { width: 20px; height: 20px; }
@@ -67,3 +79,5 @@ body.regopen { overflow: hidden; }
 #reg input.rinok { border-color: #c0392b; background: #fbe0de; color: #a8261c; }
 #reg input.rL { width: 64px; }
 #reg .rtag:empty { display: none; }
+#reg .rsm { display: none; }
+@media (max-width: 430px) { #reg .rlg { display: none; } #reg .rsm { display: inline; } }

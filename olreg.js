@@ -123,22 +123,28 @@ function openEbs(nr) {
 function shell() {
   REG.innerHTML = `
   <div class="rhead">
-    <div class="rrow1"><button type="button" class="iconbtn" id="rClose" title="Zurück zur Suche">←</button><b>OL-Regulierung</b>
+    <div class="rrow1"><button type="button" class="iconbtn" id="rClose" title="Zurück zur Suche">←</button><b class="rtitle">OL-Regulierung</b>
       <select id="rBs" aria-label="Baustelle"></select>
-      <label class="iconbtn rfile" title="Baustelle importieren (.olreg)">Import<input type="file" id="rImp" hidden></label></div>
-    <div class="rsub" id="rSub"></div>
-    <div class="rbar">
-      <label>Kettenwerk / Abschnitt<select id="rKw"></select></label>
-      <label>Temperatur °C<input id="rT" type="number" step="0.5" inputmode="decimal"></label>
-      <label>Datum<input id="rDate" type="date"></label>
-      <label>Prüfer / Trupp<input id="rName"></label>
-      <label>Suche<input id="rQ" placeholder="Mast …"></label>
-      <label>Filter<select id="rFlt"><option value="">alle</option><option value="open">offen</option><option value="nok">außer Toleranz</option><option value="ok">i.O.</option></select></label>
+      <button type="button" class="iconbtn" id="rMoreB" title="Datum, Prüfer, Import" aria-expanded="false">⋯</button></div>
+    <div class="rmore" id="rMore" hidden>
+      <div class="rsub" id="rSub"></div>
+      <div class="rbar">
+        <label>Datum<input id="rDate" type="date"></label>
+        <label>Prüfer / Trupp<input id="rName"></label>
+        <label class="iconbtn rfile" title="Baustelle importieren (.olreg)">Import<input type="file" id="rImp" hidden></label>
+      </div>
     </div>
-    <nav class="rtabs" id="rTabs"><button data-t="stp" class="on">Stützpunkte</button><button data-t="kw">Kettenwerke</button><button data-t="aus">Auswertung / Fertigmeldung</button><button data-t="cfg">Einstellungen</button></nav>
+    <select id="rKw" class="rkwsel" aria-label="Kettenwerk / Abschnitt"></select>
+    <div class="rbar2">
+      <span class="rtin"><input id="rT" type="number" step="0.5" inputmode="decimal" placeholder="T" aria-label="Temperatur °C">°C</span>
+      <input id="rQ" type="search" placeholder="Mast suchen" aria-label="Suche">
+      <select id="rFlt" aria-label="Filter"><option value="">alle</option><option value="open">offen</option><option value="nok">außer Tol.</option><option value="ok">i.O.</option></select>
+    </div>
+    <nav class="rtabs" id="rTabs"><button data-t="stp" class="on">Stützpunkte</button><button data-t="kw"><span class="rlg">Kettenwerke</span><span class="rsm">KW</span></button><button data-t="aus">Fertigmeldung</button><button data-t="cfg" title="Einstellungen">⚙</button></nav>
   </div>
   <div class="rmain"><section id="r-stp"></section><section id="r-kw" hidden></section><section id="r-aus" hidden></section><section id="r-cfg" hidden></section></div>`;
   q('#rClose').onclick = close;
+  q('#rMoreB').onclick = () => { const p = q('#rMore'); p.hidden = !p.hidden; q('#rMoreB').setAttribute('aria-expanded', !p.hidden); };
   q('#rImp').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) importFile(f); };
   q('#rBs').onchange = e => e.target.value === '' ? null : loadBs(e.target.value);
   q('#rTabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; qa('#rTabs button').forEach(x => x.classList.toggle('on', x === b)); render(); };
