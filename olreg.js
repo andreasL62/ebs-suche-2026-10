@@ -102,13 +102,13 @@ function rsEnd(k, e) { const r = S.kw[k.nr] || {}, mid = e === 'a' ? k.von : k.b
   if (fp) { if ((k.vonFD === 'f') !== (k.bisFD === 'f')) auto = k.laenge; else { const a = mastKm(mid), b = mastKm(fp); if (a != null && b != null) auto = Math.abs(a - b) * 1000; } }
   const L = num(r['L' + e]) ?? auto, so = rsSoll(L), ist = num(r['a' + e]); return { L, auto, so, ist, c: chk(ist, so && so.a, cfg().tolRS), r }; }
 const mA = v => v == null ? '' : (Math.round(v / 10) / 100).toFixed(2).replace('.', ',');
-function kwEnd(id) { const k = kwObj(); if (!k) return ''; const art = (a, b) => a === 'f' && b === 'f' ? 'FA' : 'Radspanner';
+function kwEnd(id) { const k = kwObj(); if (!k) return ''; const art = (a, b) => a === 'f' && b === 'f' ? 'FA' : 'Rsp';
   if (id === k.von) return `Anfang KW ${k.nr} – ${art(k.vonFD, k.vonTS)}`; if (id === k.bis) return `Ende KW ${k.nr} – ${art(k.bisFD, k.bisTS)}`; return ''; }
 function kwEndInfo(id) { const k = kwObj(); if (!k) return ''; const e = id === k.von ? 'a' : id === k.bis ? 'b' : null; if (!e) return '';
   const fd = e === 'a' ? k.vonFD : k.bisFD, ts = e === 'a' ? k.vonTS : k.bisTS;
   if (fd === 'f' && ts === 'f') return `<div class="rnote">${kwEnd(id)}: kein Radspanner</div>`;
   const x = rsEnd(k, e);
-  return `<div class="rnote">${kwEnd(id)}: L zum FP ${x.L != null ? Math.round(x.L) + ' m' : '?'} · Soll a unter Spannseil <b>${x.so ? mA(x.so.a) + ' m' : 'T eingeben'}</b>${x.ist != null ? ' · Ist ' + mA(x.ist) + ' m ' + (x.c ? (x.c.ok ? '✓' : '✗') : '') : ''} (Eingabe unter „Kettenwerke“)</div>`; }
+  return `<div class="rnote">${kwEnd(id)}: L zum FP ${x.L != null ? Math.round(x.L) + ' m' : '?'} · Soll a unter Spannseil <b>${x.so ? mA(x.so.a) + ' m' : 'T eingeben'}</b>${x.r['ok' + e] ? ' · <b>✓ i.O.</b>' : ' · offen'} (Abhaken unter „Kettenwerke“)</div>`; }
 
 /* ---------- Zeichnungen im Viewer der App ---------- */
 function ebsTag(nr, txt) { return nr ? `<button type="button" class="rtag rebs" data-ebs="${nr}" title="Zeichnung Ebs ${nr} öffnen">${txt}</button>` : `<span class="rtag">${txt}</span>`; }
@@ -160,11 +160,11 @@ function head() {
 }
 
 /* Soll-b-Maß je Stützpunkt (mit Korrekturen aus der App) für die zugeklappte Zeile */
-function bsumTxt(m) { const ks = kwSel(); return 'b ' + m.stp.map((s, i) => { const key = m.id + '#' + i; return ks && kwOf(key) !== ks ? null : slTxt(soll(key, m, s).sl); }).filter(x => x != null).join(' / '); }
+function bsumTxt(m) { const ks = kwSel(); const v = m.stp.map((s, i) => { const key = m.id + '#' + i; return ks && kwOf(key) !== ks ? null : slTxt(soll(key, m, s).sl); }).filter(x => x != null); return v.length ? 'b ' + v.join(' / ') : ''; }
 /* Soll-Auslegerstellung je Stützpunkt für die zugeklappte Zeile */
 function asumTxt(m) { const ks = kwSel(); const v = m.stp.map((s, i) => { const key = m.id + '#' + i; if (ks && kwOf(key) !== ks) return null;
   const as = auslSoll(Lof(key, S.m[key] || {})); return as == null ? '?' : Math.round(as / 10) === 0 ? '0 cm' : ausFmt(as, key); }).filter(x => x != null);
-  return 'Ausl. ' + (T() == null ? 'T eingeben' : v.join(' / ')); }
+  return v.length ? 'Ausl. ' + (T() == null ? 'T eingeben' : v.join(' / ')) : ''; }
 /* Stützpunkte */
 function renderStp() {
   const qq = (q('#rQ').value || '').toLowerCase(), fl = q('#rFlt').value, ks = kwSel(); let o = '';
@@ -234,13 +234,13 @@ function kwRow(el) { const k = kwBy(el.dataset.kwr), r = S.kw[k.nr] || {}, fp = 
   let rows = ''; [['a', k.von, k.vonFD, k.vonTS], ['b', k.bis, k.bisFD, k.bisTS]].forEach(([e, mid, fd, ts]) => {
     if (fd !== 'b' && ts !== 'b') { rows += `<tr><td>${mid}</td><td>FA</td><td colspan="4" class="rhint">kein Radspanner</td></tr>`; return; }
     const x = rsEnd(k, e);
-    rows += `<tr><td>${mid}</td><td>Radspanner</td><td><input type="number" data-k="L${e}" value="${h(r['L' + e] ?? '')}" placeholder="${x.auto != null ? Math.round(x.auto) : 'm'}"></td>
+    rows += `<tr><td>${mid}</td><td>Rsp</td><td><input type="number" class="rL" max="750" data-k="L${e}" value="${h(r['L' + e] ?? '')}" placeholder="${x.auto != null ? Math.round(x.auto) : 'm'}"></td>
       <td>${x.so ? mA(x.so.a) + ' m' : '–'}</td>
-      <td><input type="text" inputmode="decimal" data-k="a${e}" value="${h(num(r['a' + e]) == null ? '' : mA(num(r['a' + e])))}" class="${x.c ? (x.c.ok ? 'riok' : 'rinok') : ''}"></td>
+      <td><label class="rok"><input type="checkbox" data-k="ok${e}" ${r['ok' + e] ? 'checked' : ''}>i.O.</label></td>
       <td><input data-k="n${e}" value="${h(r['n' + e] ?? '')}" placeholder="Notiz"></td></tr>`; });
   el.innerHTML = `<div class="rrow"><b>KW ${k.nr}</b> ${h(k.name)} <span class="rtag">${h(k.bauart)}</span><span class="rtag">${f2(k.laenge, 1)} m</span>
     <label class="rhint">FP <select data-k="fp"><option value="">${fp && !r.fp ? fp + (k.fp ? ' (lt. Lageplan)' : ' (FA)') : '– wählen –'}</option>${ms}</select></label>${k.fpText ? `<span class="rhint">${h(k.fpText)}</span>` : ''}</div>
-    <div class="rtw"><table><tr><th>Abfangung</th><th>Art</th><th>L zum FP [m]</th><th>Soll a [m]</th><th>Ist a [m]</th><th></th></tr>${rows}</table></div>`;
+    <div class="rtw"><table><tr><th>Abfangung</th><th>Art</th><th>L zum FP [m]</th><th>Soll a [m]</th><th>Ist</th><th></th></tr>${rows}</table></div>`;
   el.querySelector('[data-k="fp"]').onchange = e => { (S.kw[k.nr] ||= {}).fp = e.target.value; save(); kwRow(el); }; }
 
 /* Auswertung */
@@ -311,7 +311,8 @@ REG.addEventListener('input', e => { const t = e.target; if (!B) return;
     const pos = arb && arb.textContent === ausAr(st.dataset.key, true); r.aus = v == null ? '' : String(Math.round(Math.abs(v) * 10) * (pos ? 1 : -1)); r.ts = new Date().toISOString(); save(); upd(st); return; }
   if (st && t.dataset.f) { const r = S.m[st.dataset.key] ||= {}, f = t.dataset.f, u = U[uKey(f)];
     r[f] = t.type === 'checkbox' ? t.checked : (u && f !== 'L' && t.value.trim() !== '' && num(t.value) != null) ? String(Math.round(num(t.value) * u.k)) : t.value; r.ts = new Date().toISOString(); save(); upd(st); return; }
-  const kr = t.closest('[data-kwr]'); if (kr && t.dataset.k && t.dataset.k !== 'fp') { const k = t.dataset.k, v = num(t.value); (S.kw[kr.dataset.kwr] ||= {})[k] = /^a/.test(k) && v != null ? String(Math.round(v * 1000)) : t.value; save(); return; }
+  const kr = t.closest('[data-kwr]'); if (kr && t.dataset.k && /^ok/.test(t.dataset.k)) { (S.kw[kr.dataset.kwr] ||= {})[t.dataset.k] = t.checked; save(); return; }
+  if (kr && t.dataset.k && t.dataset.k !== 'fp') { const k = t.dataset.k, v = num(t.value); (S.kw[kr.dataset.kwr] ||= {})[k] = /^a/.test(k) && v != null ? String(Math.round(v * 1000)) : t.value; save(); return; }
   if (t.id === 'rT' || t.id === 'rDate' || t.id === 'rName') { S.g[t.id.slice(1)] = t.value; save(); if (t.id === 'rT') { qa('.rstp').forEach(upd); qa('[data-asum]').forEach(x => { x.textContent = asumTxt(mast(x.dataset.asum)); }); if (tab() === 'kw') qa('[data-kwr]').forEach(kwRow); } return; }
   if (t.dataset.cfg) { S.cfg[t.dataset.cfg] = num(t.value) ?? DEF[t.dataset.cfg]; save(); }
 });
@@ -400,13 +401,13 @@ function exportXlsx() {
   const sum = [[{ v: 'Zusammenfassung', s: 5 }], [], [H('Stützpunkte'), all.length], [H('i.O.'), { v: ok, s: 3 }], [H('außer Toleranz'), { v: nok, s: 4 }], [H('offen'), { v: op, s: 6 }], [H('reguliert'), done], [],
     [{ v: 'Bestätigung', s: 1 }], ['Die Oberleitung im angegebenen Abschnitt wurde reguliert. Abweichungen außerhalb der Toleranz sind in der Tabelle gekennzeichnet.'], [], ['Ort, Datum:', '', '', 'Unterschrift:']];
   const rs = [[{ v: 'Radspanner (Ebs 08.02.21/31)', s: 5 }], [`Temperatur ${S.g.T ? num(S.g.T) + ' °C' : '–'} · Mittelstellung ${mA(c.rsMitte)} m bei ${c.tm} °C · Übersetzung 1:${c.rsUe}`], [],
-    ['KW', 'Bezeichnung', 'Mast', 'Abfangung', 'L zum FP [m]', 'Soll a [m]', 'Ist a [m]', 'Status', 'Notiz'].map(H)];
+    ['KW', 'Bezeichnung', 'Mast', 'Abfangung', 'L zum FP [m]', 'Soll a [m]', 'Status', 'Notiz'].map(H)];
   B.kettenwerke.filter(x => !k || x.nr === k.nr).forEach(x => [['a', x.von, x.vonFD], ['b', x.bis, x.bisFD]].forEach(([e, mid, fd]) => {
     if (fd !== 'b') { rs.push([x.nr, x.name, mid, 'FA']); return; } const y = rsEnd(x, e);
-    rs.push([x.nr, x.name, mid, 'Radspanner', y.L != null ? Math.round(y.L) : '', y.so ? { v: Math.round(y.so.a / 10) / 100, s: 7 } : '', y.ist != null ? { v: Math.round(y.ist / 10) / 100, s: 7 } : '', y.c ? { v: y.c.ok ? 'i.O.' : 'außer Toleranz', s: y.c.ok ? 3 : 4 } : '', y.r['n' + e] || '']); }));
+    rs.push([x.nr, x.name, mid, 'Rsp', y.L != null ? Math.round(y.L) : '', y.so ? { v: Math.round(y.so.a / 10) / 100, s: 7 } : '', y.r['ok' + e] ? { v: 'i.O.', s: 3 } : { v: 'offen', s: 6 }, y.r['n' + e] || '']); }));
   const blob = xlsx([
     { name: 'Fertigmeldung', xml: sheetXml([...kopf, hd, ...body], [9, 5, 9, 10, 7, 28, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 14, 9, 30]) },
-    { name: 'Radspanner', xml: sheetXml(rs, [5, 30, 10, 11, 12, 11, 11, 10, 30]) },
+    { name: 'Radspanner', xml: sheetXml(rs, [5, 30, 10, 11, 12, 11, 10, 30]) },
     { name: 'Zusammenfassung', xml: sheetXml(sum, [18, 12, 12, 30]) },
     ...(() => { const kk = korrekturen().filter(x => !k || kwOf(x.key) === String(k.nr)), lg = (B.meta.korrekturen || []).filter(x => !k || kwOf(x.mast + '#' + (x.stp - 1)) === String(k.nr));
       if (!kk.length && !lg.length) return []; const rows = [[{ v: 'Soll-Korrekturen', s: 5 }], [], ['Mast', 'Stp', 'Wert', 'Soll Plan', 'Soll korrigiert', 'Datum', 'Prüfer', 'Stand'].map(H)];

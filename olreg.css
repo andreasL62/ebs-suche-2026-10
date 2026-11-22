@@ -65,3 +65,5 @@ body.regopen { overflow: hidden; }
 #reg input[data-f="fh"], #reg input[data-f="sh"], #reg input[data-f="sl"], #reg input[data-f="aus"] { width: 84px; }
 #reg input.riok { border-color: #1a7f37; background: #d8f0de; color: #1a6b33; }
 #reg input.rinok { border-color: #c0392b; background: #fbe0de; color: #a8261c; }
+#reg input.rL { width: 64px; }
+#reg .rtag:empty { display: none; }
