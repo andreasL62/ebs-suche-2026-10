@@ -13,6 +13,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="olreg.css">
 </head>
 <body>
 <header class="bar">
@@ -22,6 +23,7 @@
       <button id="qClear" type="button" hidden title="Suchfeld leeren" aria-label="Suchfeld leeren">✕</button>
     </div>
     <button id="tocBtn" class="iconbtn" title="Inhalt wie im Zeichnungsverzeichnis (Lesezeichen)">Inhalt</button>
+    <button id="regBtn" class="iconbtn" title="Oberleitung regulieren (Baustellen, Messwerte, Fertigmeldung)">Regulierung</button>
     <button id="dataBtn" class="iconbtn" title="Daten auf diesem Gerät" aria-label="Daten auf diesem Gerät">Daten</button>
   </div>
   <div class="searchrow numrow">
@@ -103,6 +105,8 @@
   </div>
 </section>
 
+<section id="reg" hidden></section>
+
 <section id="viewer" hidden>
   <div class="vbar">
     <button id="vClose" title="Zurück zur Liste (Esc)" aria-label="Zurück">←</button>
@@ -171,5 +175,6 @@
 <script src="lib/pdf.min.js"></script>
 <script src="store.js"></script>
 <script src="app.js"></script>
+<script src="olreg.js"></script>
 </body>
 </html>

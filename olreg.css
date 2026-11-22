@@ -1,0 +1,67 @@
+/* Modul OL-Regulierung – alle Regeln unter #reg, eigene Klassen mit Präfix r */
+#reg { position: fixed; inset: 0; z-index: 9; background: var(--bg); color: var(--text); display: flex; flex-direction: column; }
+#reg[hidden] { display: none; }
+body.regopen { overflow: hidden; }
+#reg .rhead { background: var(--panel); border-bottom: 3px solid var(--accent); padding: calc(8px + env(safe-area-inset-top)) 12px 8px; }
+#reg .rrow1 { display: flex; gap: 8px; align-items: center; }
+#reg .rrow1 .iconbtn { height: 38px; display: inline-flex; align-items: center; }
+#reg .rrow1 b { font-size: 16px; white-space: nowrap; }
+#reg .rrow1 select { flex: 1; min-width: 0; }
+#reg .rsub { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+#reg .rbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-top: 8px; }
+#reg .rbar label { font-size: 11px; color: var(--muted); display: flex; flex-direction: column; }
+#reg #rKw { max-width: 260px; }
+#reg input, #reg select, #reg textarea { font: inherit; font-size: 15px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; min-width: 0; }
+#reg input[type=number] { width: 92px; }
+#reg input[type=checkbox] { width: 20px; height: 20px; }
+#reg textarea { width: 100%; }
+#reg .rtabs { display: flex; gap: 4px; margin-top: 8px; overflow-x: auto; }
+#reg .rtabs button { border: 1px solid var(--line); background: var(--bg); color: var(--text); padding: 7px 12px; border-radius: 16px; font-size: 14px; white-space: nowrap; cursor: pointer; }
+#reg .rtabs button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+#reg .rmain { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; padding: 10px 12px calc(30px + env(safe-area-inset-bottom)); }
+#reg .rmain > section { max-width: 1100px; margin: 0 auto; }
+#reg .rcard { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin: 0 0 8px; overflow: hidden; }
+#reg .rpad { padding: 10px 12px; }
+#reg .rcard h3 { margin: 0 0 6px; font-size: 15px; }
+#reg .rcard > summary { list-style: none; cursor: pointer; padding: 10px 12px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+#reg .rcard > summary::-webkit-details-marker { display: none; }
+#reg .rmid { font-weight: 700; min-width: 76px; }
+#reg .rtag { font: inherit; font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
+#reg .rtag.ok { background: #d8f0de; color: #1a6b33; border-color: transparent; }
+#reg .rtag.nok { background: #fbe0de; color: #a8261c; border-color: transparent; }
+#reg .rtag.open { background: #fff1c9; color: #8a6200; border-color: transparent; }
+#reg .rebs { cursor: pointer; color: var(--accent); border-color: var(--accent); }
+#reg .rebs:hover { background: var(--accent); color: var(--accent-ink); }
+#reg .rbody { padding: 0 12px 12px; border-top: 1px solid var(--line); }
+#reg .rstamm { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 4px 12px; font-size: 13px; margin: 10px 0; }
+#reg .rstamm b { display: block; font-size: 11px; color: var(--muted); font-weight: 500; }
+#reg .rstamm input { width: 100%; }
+#reg .rstp { border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin-top: 8px; }
+#reg .rstp h4 { margin: 0 0 6px; font-size: 14px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+#reg .rgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin-top: 6px; }
+#reg .rf { display: flex; flex-direction: column; font-size: 11px; color: var(--muted); gap: 2px; }
+#reg .rf > b { font-size: 13px; color: var(--text); }
+#reg .rrow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+#reg .rok { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; color: #1a7f37; white-space: nowrap; }
+#reg .rsoll { width: 74px !important; padding: 3px 6px !important; font-size: 13px !important; }
+#reg .rd { font-size: 12px; font-weight: 600; }
+#reg .rd.ok, #reg b.ok { color: #1a7f37; } #reg .rd.nok, #reg b.nok { color: #c0392b; }
+#reg .rhint { font-size: 12px; color: var(--muted); }
+#reg .rnote { background: #fff1c9; color: #6b4c00; border-radius: 8px; padding: 8px 10px; font-size: 13px; margin: 8px 0; }
+#reg table { border-collapse: collapse; width: 100%; font-size: 13px; }
+#reg th, #reg td { border-bottom: 1px solid var(--line); padding: 5px 6px; text-align: left; vertical-align: top; }
+#reg th { font-size: 11px; color: var(--muted); }
+#reg .rtw { overflow-x: auto; }
+#reg .rstats { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; }
+#reg .rstats div { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-width: 100px; font-size: 13px; }
+#reg .rstats b { display: block; font-size: 20px; }
+#reg .primarybtn { width: auto; }
+#reg .rfile input { display: none; }
+#reg .iconbtn.rfile { display: inline-flex; align-items: center; height: 38px; }
+@media (max-width: 600px) { #reg .rgrid { grid-template-columns: 1fr 1fr; } #reg input[type=number] { width: 78px; } #reg #rKw { max-width: 100%; } }
+#reg .rkor { border-color: #d97706 !important; background: #fff1c9 !important; color: #6b4c00 !important; }
+#reg .rkortxt { color: #b45309; }
+#reg .rpm { border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 8px; padding: 4px 9px; font-size: 15px; cursor: pointer; }
+#reg input[data-f="fh"], #reg input[data-f="sh"], #reg input[data-f="sl"], #reg input[data-f="aus"] { width: 84px; }
+#reg input.riok { border-color: #1a7f37; background: #d8f0de; color: #1a6b33; }
+#reg input.rinok { border-color: #c0392b; background: #fbe0de; color: #a8261c; }

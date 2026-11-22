@@ -547,6 +547,9 @@ function findSheet(nr) {                 // bei mehreren Blättern immer Blatt 1
   }
   return best ? best.first : (direct[0] || pages[0]);
 }
+/* Schnittstelle für das Modul „OL-Regulierung“ (olreg.js): Blatt öffnen ohne Suchkontext */
+window.EBS_READY = () => !!(S.byNr && S.pages.length);
+window.EBS_OPEN = n => { if (G.mode === 'list') closeGoto(); S.nav = []; S.hitPos = -1; showPage(n); };
 function followRef(nr) {
   const t = findSheet(nr);
   if (!t) return false;
