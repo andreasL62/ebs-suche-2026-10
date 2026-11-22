@@ -193,9 +193,9 @@ function renderStp() {
   q('#r-stp').innerHTML = o || '<p class="rhint">Keine Treffer.</p>';
   qa('#r-stp details').forEach(d => d.addEventListener('toggle', () => { if (d.open) fillBody(d); }));
 }
-function fld(f, lab, r, sol, sf, tol, bv) { const kor = num(r[sf]) != null && num(r[sf]) !== bv, u = U[f], pm = u.sg ? `<button type="button" class="rpm" data-pm="${f}" title="Vorzeichen wechseln">±</button>` : '';
-  return `<label class="rf">${lab}<span class="rrow"><input type="text" inputmode="decimal" data-f="${f}" value="${h(fmtU(f, num(r[f])))}">${pm}<label class="rok"><input type="checkbox" data-f="ok_${f}" ${r['ok_' + f] ? 'checked' : ''}>i.O.</label></span>
-  <span class="rhint">Soll <input type="text" inputmode="decimal" data-f="${sf}" value="${h(fmtU(f, sol))}" class="rsoll${kor ? ' rkor' : ''}">${u.sg ? `<button type="button" class="rpm" data-pm="${sf}" title="Vorzeichen wechseln">±</button>` : ''} ±${fmtU(f, tol).replace(/^[+-]/, '')} ${u.u}</span>${kor ? `<span class="rhint rkortxt">korrigiert – Stammdaten ${fmtU(f, bv, { unit: 1 })}</span>` : ''}<span class="rd" data-d="${f}"></span></label>`; }
+function fld(f, lab, r, sol, sf, tol, bv) { const kor = num(r[sf]) != null && num(r[sf]) !== bv, u = U[f], im = u.sg ? '' : ' inputmode="decimal"', w = 'rv' + (u.sg ? ' rvs' : '');
+  return `<label class="rf">${lab}<span class="rrow"><span class="rpre">Ist</span><input type="text"${im} data-f="${f}" value="${h(fmtU(f, num(r[f])))}" class="${w}"><label class="rok"><input type="checkbox" data-f="ok_${f}" ${r['ok_' + f] ? 'checked' : ''}>i.O.</label></span>
+  <span class="rrow rhint"><span class="rpre">Soll</span><input type="text"${im} data-f="${sf}" value="${h(fmtU(f, sol))}" class="${w}${kor ? ' rkor' : ''}"> ±${fmtU(f, tol).replace(/^[+-]/, '')} ${u.u}</span>${kor ? `<span class="rhint rkortxt">korrigiert – Stammdaten ${fmtU(f, bv, { unit: 1 })}</span>` : ''}<span class="rd" data-d="${f}"></span></label>`; }
 function fillBody(d) {
   const m = mast(d.dataset.m), id = m.id, c = cfg(); let x = `<div class="rstamm">
     <div><b>km</b><input data-km="${id}" value="${h(S.km[id] ?? (m.km ?? ''))}"></div><div><b>Mast Ebs 04.</b>${h(m.ebs04)}</div><div><b>Profil</b>${h(m.profil)}</div>
@@ -209,11 +209,11 @@ function fillBody(d) {
       ${s.sl ? `<div class="rhint">b-Maß lt. Lageplan: <b>${slTxt(s.sl[0])}</b>${s.sl[3] ? ' ' + h(s.sl[3]) : ''}</div>` : '<div class="rhint">b-Maß: Vorbelegung aus Bauart</div>'}
       <div class="rgrid">
         <div class="rf">Kettenwerk<b>${k ? 'KW ' + k.nr + ' – ' + h(k.name) : '–'}</b><span class="rhint">lt. KW-Tabelle + Lageplan${(B.kwPruefen || []).includes(id) ? ' – ⚠ prüfen' : ''}</span></div>
-        ${fld('fh', 'FH Ist [m]', r, so.fh, 'sFH', c.tolFH, bs.fh)}
-        ${fld('sl', 'b-Maß Ist [cm]', r, so.sl, 'sSL', c.tolSL, bs.sl)}
-        ${fld('sh', 'SH Ist [m]', r, so.sh, 'sSH', c.tolSH, bs.sh)}
+        ${fld('fh', 'FH [m]', r, so.fh, 'sFH', c.tolFH, bs.fh)}
+        ${fld('sl', 'b-Maß [cm]', r, so.sl, 'sSL', c.tolSL, bs.sl)}
+        ${fld('sh', 'SH [m]', r, so.sh, 'sSH', c.tolSH, bs.sh)}
         <label class="rf">L zum Festpunkt [m]<input type="number" data-f="L" value="${h(r.L ?? '')}" placeholder="${L != null ? Math.round(L) : 'm'}"><span class="rhint">${num(r.L) == null && L != null ? 'auto aus km: ' + Math.round(L) + ' m' : ''}</span></label>
-        <label class="rf">Auslegerstellung Ist [cm]<span class="rrow"><input type="text" inputmode="decimal" data-f="aus" value="${num(r.aus) == null ? '' : Math.round(Math.abs(num(r.aus)) / 10)}"><button type="button" class="rpm rar" data-ar="aus" title="Richtung wechseln">${(() => { const v = num(r.aus), as = auslSoll(L); const pos = v != null && v !== 0 ? v > 0 : (as != null ? as > 0 : true); return ausAr(key, pos); })()}</button><label class="rok"><input type="checkbox" data-f="ok_aus" ${r.ok_aus ? 'checked' : ''}>i.O.</label></span><span class="rhint" data-as>${asTxt(auslSoll(L), key)}</span><span class="rd" data-d="aus"></span></label>
+        <label class="rf">Auslegerstellung [cm]<span class="rrow"><span class="rpre">Ist</span><input type="text" inputmode="decimal" class="rv" data-f="aus" value="${num(r.aus) == null ? '' : Math.round(Math.abs(num(r.aus)) / 10)}"><button type="button" class="rpm rar" data-ar="aus" title="Richtung wechseln">${(() => { const v = num(r.aus), as = auslSoll(L); const pos = v != null && v !== 0 ? v > 0 : (as != null ? as > 0 : true); return ausAr(key, pos); })()}</button><label class="rok"><input type="checkbox" data-f="ok_aus" ${r.ok_aus ? 'checked' : ''}>i.O.</label></span><span class="rhint" data-as>${asTxt(auslSoll(L), key)}</span><span class="rd" data-d="aus"></span></label>
         <label class="rf">Erledigt<span class="rrow"><label class="rok"><input type="checkbox" data-f="done" ${r.done ? 'checked' : ''}>reguliert</label></span></label>
       </div><label class="rf">Bemerkung / Maßnahme<textarea rows="2" data-f="note">${h(r.note || '')}</textarea></label></div>`; });
   d.querySelector('.rbody').innerHTML = x;

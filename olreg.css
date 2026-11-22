@@ -81,3 +81,11 @@ body.regopen { overflow: hidden; }
 #reg .rtag:empty { display: none; }
 #reg .rsm { display: none; }
 @media (max-width: 430px) { #reg .rlg { display: none; } #reg .rsm { display: inline; } }
+#reg input.rv { width: 72px; padding: 5px 6px; font-size: 16px; }
+#reg input.rv.rvs { width: 58px; }
+#reg .rpre { display: inline-block; width: 30px; font-size: 12px; color: var(--muted); }
+#reg .rrow.rhint { flex-wrap: nowrap; white-space: nowrap; }
+#reg .rf > .rrow:has(.rpre) { flex-wrap: nowrap; gap: 4px; }
+#reg input.rv { width: 64px; }
+#reg .rpre { width: 26px; }
+#reg .rok input[type=checkbox] { flex: 0 0 auto; }
