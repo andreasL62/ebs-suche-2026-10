@@ -125,7 +125,7 @@ function shell() {
   <div class="rhead">
     <div class="rrow1"><button type="button" class="iconbtn" id="rClose" title="Zurück zur Suche">←</button><b>OL-Regulierung</b>
       <select id="rBs" aria-label="Baustelle"></select>
-      <label class="iconbtn rfile" title="Baustelle importieren (.olreg)">Import<input type="file" id="rImp" accept=".olreg,.json,application/json" hidden></label></div>
+      <label class="iconbtn rfile" title="Baustelle importieren (.olreg)">Import<input type="file" id="rImp" hidden></label></div>
     <div class="rsub" id="rSub"></div>
     <div class="rbar">
       <label>Kettenwerk / Abschnitt<select id="rKw"></select></label>
@@ -253,7 +253,7 @@ function renderAus() {
     return `<tr data-st="${st}"><td>${m.id} ${stpLbl(s, i)}</td><td>${s.bauart}</td><td>${kwOf(key) ? 'KW ' + kwOf(key) : ''}</td>${cell('fh', so.fh, c.tolFH)}${cell('sl', so.sl, c.tolSL)}${cell('sh', so.sh, c.tolSH)}${(() => { const x = ck(r, 'aus', as, c.tolAus); return x?.hk ? '<td class="rd ok">✓ i.O.</td>' : x ? `<td class="rd ${x.ok ? 'ok' : 'nok'}">${ausFmt(num(r.aus), key)} (Soll ${ausFmt(as, key)})</td>` : '<td class="rhint">–</td>'; })()}<td>${r.done ? '✓' : ''}</td><td>${h(r.note || '')}</td></tr>`; });
   q('#r-aus').innerHTML = `<div class="rstats"><div><b>${all.length}</b>Stützpunkte</div><div><b class="ok">${ok}</b>i.O.</div><div><b class="nok">${nok}</b>außer Toleranz</div><div><b>${op}</b>offen</div><div><b>${done}</b>reguliert</div></div>
     <p class="rrow"><button type="button" class="primarybtn" id="rXlsx">Fertigmeldung als Excel</button><button type="button" class="secbtn" id="rBak">Sicherung speichern</button>
-    <label class="secbtn rfile">Sicherung laden<input type="file" id="rBakIn" accept=".json" hidden></label></p>
+    <label class="secbtn rfile">Sicherung laden<input type="file" id="rBakIn" hidden></label></p>
     <p class="rhint">${kwSel() ? 'Fertigmeldung für KW ' + kwSel() + ' – ' + h(kwObj().name) : 'Fertigmeldung für alle Kettenwerke'} (Auswahl oben „Kettenwerk / Abschnitt“). <label><input type="checkbox" id="rOnlyNok"> nur außer Toleranz anzeigen</label></p>
     <div class="rtw"><table id="rAt"><tr><th>Mast / Stp</th><th>Bauart</th><th>KW</th><th>FH [m] (Abw.)</th><th>b [cm] (Abw.)</th><th>SH [m] (Abw.)</th><th>Ausl. [cm] (Abw.)</th><th>Reg.</th><th>Bemerkung</th></tr>${tr.join('')}</table></div>`;
   q('#rOnlyNok').onchange = e => qa('#rAt tr[data-st]').forEach(t => t.hidden = e.target.checked && t.dataset.st !== 'nok');
