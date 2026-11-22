@@ -97,6 +97,11 @@ function ausNb(key) { const id = key.split('#')[0], nr = kwOf(key), k = kwBy(nr)
 function ausFmt(mm, key, opt = {}) { if (mm == null || isNaN(mm)) return ''; const cm = Math.round(Math.abs(mm) / 10); if (cm === 0) return '0 cm';
   const n = ausNb(key), sd = n ? (mm > 0 ? n.pos : n.neg) : null; return `${cm} cm ${sd ? sd.ar : (mm > 0 ? '+' : '-')}${opt.mast && sd && sd.id ? ' ' + sd.id : ''}`; }
 const ausAr = (key, pos) => { const n = ausNb(key); return n ? (pos ? n.pos.ar : n.neg.ar) : (pos ? '+' : '−'); };
+/* Soll-Feld Auslegerstellung: Betrag + Pfeil, Rest dahinter (Nachbarmast, Toleranz) */
+const asSgn = (as) => as != null && Math.round(as / 10) !== 0 && as < 0 ? -1 : 1;
+const asVal = (as, key) => as == null ? '' : Math.round(as / 10) === 0 ? '0' : Math.round(Math.abs(as) / 10) + ' ' + ausAr(key, as > 0);
+const asRest = (as, key) => { const tol = '±' + fmtU('aus', cfg().tolAus).replace(/^[+-]/, '') + ' cm'; if (as == null) return 'T und L eingeben';
+  if (Math.round(as / 10) === 0) return 'Mitte ' + tol; const n = ausNb(key), sd = n ? (as > 0 ? n.pos : n.neg) : null; return (sd && sd.id ? sd.id + ' ' : '') + tol; };
 const asTxt = (as, key) => 'Soll: ' + (as == null ? 'T und L eingeben' : Math.round(as / 10) === 0 ? 'Mittelstellung (0 cm)' : ausFmt(as, key, { mast: 1 })) + ' · ±' + fmtU('aus', cfg().tolAus).replace(/^[+-]/, '') + ' cm';
 function rsEnd(k, e) { const r = S.kw[k.nr] || {}, mid = e === 'a' ? k.von : k.bis, fp = kwFP(k); let auto = null;
   if (fp) { if ((k.vonFD === 'f') !== (k.bisFD === 'f')) auto = k.laenge; else { const a = mastKm(mid), b = mastKm(fp); if (a != null && b != null) auto = Math.abs(a - b) * 1000; } }
@@ -212,8 +217,8 @@ function fillBody(d) {
         ${fld('fh', 'FH [m]', r, so.fh, 'sFH', c.tolFH, bs.fh)}
         ${fld('sl', 'b-Maß [cm]', r, so.sl, 'sSL', c.tolSL, bs.sl)}
         ${fld('sh', 'SH [m]', r, so.sh, 'sSH', c.tolSH, bs.sh)}
-        <label class="rf">L zum Festpunkt [m]<input type="number" data-f="L" value="${h(r.L ?? '')}" placeholder="${L != null ? Math.round(L) : 'm'}"><span class="rhint">${num(r.L) == null && L != null ? 'auto aus km: ' + Math.round(L) + ' m' : ''}</span></label>
-        <label class="rf">Auslegerstellung [cm]<span class="rrow"><span class="rpre">Ist</span><input type="text" inputmode="decimal" class="rv" data-f="aus" value="${num(r.aus) == null ? '' : Math.round(Math.abs(num(r.aus)) / 10)}"><button type="button" class="rpm rar" data-ar="aus" title="Richtung wechseln">${(() => { const v = num(r.aus), as = auslSoll(L); const pos = v != null && v !== 0 ? v > 0 : (as != null ? as > 0 : true); return ausAr(key, pos); })()}</button><label class="rok"><input type="checkbox" data-f="ok_aus" ${r.ok_aus ? 'checked' : ''}>i.O.</label></span><span class="rhint" data-as>${asTxt(auslSoll(L), key)}</span><span class="rd" data-d="aus"></span></label>
+        <label class="rf">L zum Festpunkt [m]<span class="rrow"><span class="rpre"></span><input type="number" class="rv rvs" data-f="L" value="${h(r.L ?? '')}" placeholder="${L != null ? Math.round(L) : 'm'}"></span><span class="rhint">${num(r.L) == null && L != null ? 'auto aus km: ' + Math.round(L) + ' m' : ''}</span></label>
+        <label class="rf">Auslegerstellung [cm]<span class="rrow"><span class="rpre">Ist</span><input type="text" inputmode="decimal" class="rv" data-f="aus" value="${num(r.aus) == null ? '' : Math.round(num(r.aus) * asSgn(auslSoll(L)) / 10)}"><label class="rok"><input type="checkbox" data-f="ok_aus" ${r.ok_aus ? 'checked' : ''}>i.O.</label></span><span class="rrow rhint"><span class="rpre">Soll</span><input type="text" class="rv" readonly tabindex="-1" data-asv value="${asVal(auslSoll(L), key)}"> <span data-as>${asRest(auslSoll(L), key)}</span></span><span class="rd" data-d="aus"></span></label>
         <label class="rf">Erledigt<span class="rrow"><label class="rok"><input type="checkbox" data-f="done" ${r.done ? 'checked' : ''}>reguliert</label></span></label>
       </div><label class="rf">Bemerkung / Maßnahme<textarea rows="2" data-f="note">${h(r.note || '')}</textarea></label></div>`; });
   d.querySelector('.rbody').innerHTML = x;
@@ -227,7 +232,7 @@ function upd(el) { const key0 = el.dataset.key, m0 = mast(key0.split('#')[0]), s
   set('fh', ck(r, 'fh', so.fh, c.tolFH)); set('sl', ck(r, 'sl', so.sl, c.tolSL)); set('sh', ck(r, 'sh', so.sh, c.tolSH));
   const L = Lof(key, r), xa = ck(r, 'aus', auslSoll(L), c.tolAus), da = el.querySelector('[data-d="aus"]');
   if (da) { if (!xa) { da.textContent = ''; da.className = 'rd'; } else { da.className = 'rd ' + (xa.ok ? 'ok' : 'nok');
-    da.textContent = xa.hk ? '✓ i.O. (abgehakt)' : xa.ok ? '✓ i.O.' : '✗ ' + ausFmt(-xa.d, key) + ' verschieben'; } } const a = el.querySelector('[data-as]'); if (a) a.textContent = asTxt(auslSoll(L), key); }
+    da.textContent = xa.hk ? '✓ i.O. (abgehakt)' : xa.ok ? '✓ i.O.' : '✗ ' + ausFmt(-xa.d, key) + ' verschieben'; } } const a = el.querySelector('[data-as]'); if (a) a.textContent = asRest(auslSoll(L), key); const av = el.querySelector('[data-asv]'); if (av) av.value = asVal(auslSoll(L), key); }
 
 /* Kettenwerke & Radspanner */
 function renderKw() {
@@ -313,8 +318,8 @@ function cleanKorr() { let n = 0; stpList().forEach(({ m, s, key }) => { const r
 /* ---------- Eingaben ---------- */
 REG.addEventListener('input', e => { const t = e.target; if (!B) return;
   if (t.dataset.km) { S.km[t.dataset.km] = t.value; save(); return; }
-  const st = t.closest('.rstp'); if (st && t.dataset.f === 'aus') { const r = S.m[st.dataset.key] ||= {}, v = num(t.value), arb = st.querySelector('[data-ar="aus"]');
-    const pos = arb && arb.textContent === ausAr(st.dataset.key, true); r.aus = v == null ? '' : String(Math.round(Math.abs(v) * 10) * (pos ? 1 : -1)); r.ts = new Date().toISOString(); save(); upd(st); return; }
+  const st = t.closest('.rstp'); if (st && t.dataset.f === 'aus') { const r = S.m[st.dataset.key] ||= {}, v = num(t.value), sg = asSgn(auslSoll(Lof(st.dataset.key, r)));
+    r.aus = v == null ? '' : String(Math.round(v * 10) * sg); r.ts = new Date().toISOString(); save(); upd(st); return; }
   if (st && t.dataset.f) { const r = S.m[st.dataset.key] ||= {}, f = t.dataset.f, u = U[uKey(f)];
     r[f] = t.type === 'checkbox' ? t.checked : (u && f !== 'L' && t.value.trim() !== '' && num(t.value) != null) ? String(Math.round(num(t.value) * u.k)) : t.value; r.ts = new Date().toISOString(); save(); upd(st); return; }
   const kr = t.closest('[data-kwr]'); if (kr && t.dataset.k && /^ok/.test(t.dataset.k)) { (S.kw[kr.dataset.kwr] ||= {})[t.dataset.k] = t.checked; save(); return; }

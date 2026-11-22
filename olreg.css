@@ -89,3 +89,4 @@ body.regopen { overflow: hidden; }
 #reg input.rv { width: 64px; }
 #reg .rpre { width: 26px; }
 #reg .rok input[type=checkbox] { flex: 0 0 auto; }
+#reg input.rv[readonly] { background: var(--panel); }
