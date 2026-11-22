@@ -218,7 +218,7 @@ function fillBody(d) {
         ${fld('sl', 'b-Maß [cm]', r, so.sl, 'sSL', c.tolSL, bs.sl)}
         ${fld('sh', 'SH [m]', r, so.sh, 'sSH', c.tolSH, bs.sh)}
         <label class="rf">L zum Festpunkt [m]<span class="rrow"><span class="rpre"></span><input type="number" class="rv rvs" data-f="L" value="${h(r.L ?? '')}" placeholder="${L != null ? Math.round(L) : 'm'}"></span><span class="rhint">${num(r.L) == null && L != null ? 'auto aus km: ' + Math.round(L) + ' m' : ''}</span></label>
-        <label class="rf">Auslegerstellung [cm]<span class="rrow"><span class="rpre">Ist</span><input type="text" inputmode="decimal" class="rv" data-f="aus" value="${num(r.aus) == null ? '' : Math.round(num(r.aus) * asSgn(auslSoll(L)) / 10)}"><label class="rok"><input type="checkbox" data-f="ok_aus" ${r.ok_aus ? 'checked' : ''}>i.O.</label></span><span class="rrow rhint"><span class="rpre">Soll</span><input type="text" class="rv" readonly tabindex="-1" data-asv value="${asVal(auslSoll(L), key)}"> <span data-as>${asRest(auslSoll(L), key)}</span></span><span class="rd" data-d="aus"></span></label>
+        <label class="rf">Auslegerstellung [cm]<span class="rrow rhint"><span class="rpre">Soll</span><input type="text" class="rv" readonly tabindex="-1" data-asv value="${asVal(auslSoll(L), key)}"> <span data-as>${asRest(auslSoll(L), key)}</span></span><span class="rrow"><span class="rpre"></span><label class="rok"><input type="checkbox" data-f="ok_aus" ${r.ok_aus ? 'checked' : ''}>eingestellt</label></span></label>
         <label class="rf">Erledigt<span class="rrow"><label class="rok"><input type="checkbox" data-f="done" ${r.done ? 'checked' : ''}>reguliert</label></span></label>
       </div><label class="rf">Bemerkung / Maßnahme<textarea rows="2" data-f="note">${h(r.note || '')}</textarea></label></div>`; });
   d.querySelector('.rbody').innerHTML = x;
@@ -400,7 +400,7 @@ function exportXlsx() {
     [{ v: 'Datum', s: 1 }, S.g.Date || ''], [{ v: 'Temperatur', s: 1 }, S.g.T ? num(S.g.T) + ' °C' : ''], [{ v: 'Prüfer / Trupp', s: 1 }, S.g.Name || ''],
     [{ v: 'Toleranzen', s: 1 }, `FH ±${fmtU('fh', c.tolFH)} m · b-Maß ±${fmtU('sl', c.tolSL).replace(/^[+-]/, '')} cm · SH ±${fmtU('sh', c.tolSH)} m · Auslegerstellung ±${fmtU('aus', c.tolAus).replace(/^[+-]/, '')} cm · Radspanner ±${mA(c.tolRS)} m`], []];
   let ok = 0, nok = 0, op = 0, done = 0;
-  const hd = ['Mast', 'Stp', 'km', 'System Ebs', 'Bauart', 'Ausleger', 'KW', 'FH Soll [m]', 'FH Ist [m]', 'FH Abw [m]', 'b Soll [cm]', 'b Ist [cm]', 'b Abw [cm]', 'SH Soll [m]', 'SH Ist [m]', 'SH Abw [m]', 'L FP [m]', 'Ausl. Soll', 'Ausl. Ist', 'Ausl. Korrektur', 'Status', 'reguliert', 'Bemerkung'].map(H);
+  const hd = ['Mast', 'Stp', 'km', 'System Ebs', 'Bauart', 'Ausleger', 'KW', 'FH Soll [m]', 'FH Ist [m]', 'FH Abw [m]', 'b Soll [cm]', 'b Ist [cm]', 'b Abw [cm]', 'SH Soll [m]', 'SH Ist [m]', 'SH Abw [m]', 'L FP [m]', 'Ausl. Soll', 'Ausl. eingestellt', 'Status', 'reguliert', 'Bemerkung'].map(H);
   const body = all.map(({ m, s, i, key }) => { const r = S.m[key] || {}, so = soll(key, m, s), L = Lof(key, r), as = auslSoll(L), st = stpStatus(key, m, s);
     if (st === 'ok') ok++; else if (st === 'nok') nok++; else op++; if (r.done) done++;
     const ab = (f, sol, tol) => { const x = ck(r, f, sol, tol); if (!x) return ''; if (x.hk) return { v: 'i.O.', s: 3 }; const m2 = U[f].d === 2;
@@ -408,7 +408,7 @@ function exportXlsx() {
     const vm = (f, v) => v == null || v === '' || isNaN(num(v)) ? '' : U[f].d === 2 ? { v: Math.round(num(v)) / 1000, s: 7 } : { v: Math.round(num(v) / U[f].k), s: 8 };
     return [m.id, stpLbl(s, i).slice(4), mastKm(m.id) ?? '', s.sys, s.bauart, s.ausleger, kwOf(key) ? Number(kwOf(key)) : '',
       vm('fh', so.fh), vm('fh', r.fh), ab('fh', so.fh, c.tolFH), vm('sl', so.sl), vm('sl', r.sl), ab('sl', so.sl, c.tolSL), vm('sh', so.sh), vm('sh', r.sh), ab('sh', so.sh, c.tolSH),
-      L != null ? Math.round(L) : '', as != null ? ausFmt(as, key, { mast: 1 }) : '', num(r.aus) != null ? ausFmt(num(r.aus), key) : '', (() => { const x = ck(r, 'aus', as, c.tolAus); return !x ? '' : x.hk ? { v: 'i.O.', s: 3 } : { v: x.ok ? 'i.O.' : ausFmt(-x.d, key) + ' verschieben', s: x.ok ? 3 : 4 }; })(), stCell(st), r.done ? 'ja' : '', r.note || '']; });
+      L != null ? Math.round(L) : '', as != null ? ausFmt(as, key, { mast: 1 }) : '', r.ok_aus ? { v: 'ja', s: 3 } : '', stCell(st), r.done ? 'ja' : '', r.note || '']; });
   const sum = [[{ v: 'Zusammenfassung', s: 5 }], [], [H('Stützpunkte'), all.length], [H('i.O.'), { v: ok, s: 3 }], [H('außer Toleranz'), { v: nok, s: 4 }], [H('offen'), { v: op, s: 6 }], [H('reguliert'), done], [],
     [{ v: 'Bestätigung', s: 1 }], ['Die Oberleitung im angegebenen Abschnitt wurde reguliert. Abweichungen außerhalb der Toleranz sind in der Tabelle gekennzeichnet.'], [], ['Ort, Datum:', '', '', 'Unterschrift:']];
   const rs = [[{ v: 'Radspanner (Ebs 08.02.21/31)', s: 5 }], [`Temperatur ${S.g.T ? num(S.g.T) + ' °C' : '–'} · Mittelstellung ${mA(c.rsMitte)} m bei ${c.tm} °C · Übersetzung 1:${c.rsUe}`], [],
@@ -417,7 +417,7 @@ function exportXlsx() {
     if (fd !== 'b') { rs.push([x.nr, x.name, mid, 'FA']); return; } const y = rsEnd(x, e);
     rs.push([x.nr, x.name, mid, 'Rsp', y.L != null ? Math.round(y.L) : '', y.so ? { v: Math.round(y.so.a / 10) / 100, s: 7 } : '', y.r['ok' + e] ? { v: 'i.O.', s: 3 } : { v: 'offen', s: 6 }, y.r['n' + e] || '']); }));
   const blob = xlsx([
-    { name: 'Fertigmeldung', xml: sheetXml([...kopf, hd, ...body], [9, 5, 9, 10, 7, 28, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 14, 9, 30]) },
+    { name: 'Fertigmeldung', xml: sheetXml([...kopf, hd, ...body], [9, 5, 9, 10, 7, 28, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 16, 11, 14, 9, 30]) },
     { name: 'Radspanner', xml: sheetXml(rs, [5, 30, 10, 11, 12, 11, 10, 30]) },
     { name: 'Zusammenfassung', xml: sheetXml(sum, [18, 12, 12, 30]) },
     ...(() => { const kk = korrekturen().filter(x => !k || kwOf(x.key) === String(k.nr)), lg = (B.meta.korrekturen || []).filter(x => !k || kwOf(x.mast + '#' + (x.stp - 1)) === String(k.nr));
