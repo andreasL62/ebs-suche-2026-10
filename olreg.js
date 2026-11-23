@@ -184,10 +184,10 @@ function renderAr() {
   B.maste.forEach(m => { const a = A[m.id]; if (!a) return;
     if (qq && !(m.id + ' ' + (m.bem || '')).toLowerCase().includes(qq)) return;
     if (ks && !kwEnd(m.id) && !m.stp.some((s, i) => kwOf(m.id + '#' + i) === ks)) return;
-    const w = a.w ? a.w.map(v => `<td>${v}</td>`).join('') : '<td colspan="4" class="rhint">offen</td>';
-    o += `<tr><td class="rarm"><b>${h(m.id)}</b>${a.gl ? `<span>${h(a.gl)}</span>` : ''}${a.hw ? `<span class="rkortxt">${h(a.hw)}</span>` : ''}</td><td>${a.t}</td>${w}</tr>`; });
+    const w = a.w ? a.w.map(v => `<td>${v}</td>`).join('') : '<td colspan="4" class="rhint">offen</td>', ok = !!S.ar[m.id];
+    o += `<tr class="${ok ? 'rardone' : ''}"><td class="rarm"><b>${h(m.id)}</b>${a.gl ? `<span>${h(a.gl)}</span>` : ''}${a.hw ? `<span class="rkortxt">${h(a.hw)}</span>` : ''}</td><td>${a.t}</td>${w}<td><input type="checkbox" data-arok="${h(m.id)}" ${ok ? 'checked' : ''} aria-label="ausgerichtet"></td></tr>`; });
   q('#r-ar').innerHTML = `<p class="rhint rpad">Eckstiel-Abstand zur Lotrechten in mm/m (Waage 1,0 m), Blick vom Gleis zum Mast. FM = Flachmast, WM = Winkelmast.<br>Prüfen: ${ebsTag('02.03.13', 'Ebs 02.03.13 Bl. 1')} ${ebsTag('02.03.14', 'Ebs 02.03.14 Bl. 1')}</p>
-    <table class="rart"><thead><tr><th>Mast</th><th></th><th>vorne</th><th>hinten</th><th>links</th><th>rechts</th></tr></thead><tbody>${o || '<tr><td colspan="6" class="rhint">keine Maste</td></tr>'}</tbody></table>`;
+    <table class="rart"><thead><tr><th>Mast</th><th></th><th>vorne</th><th>hinten</th><th>links</th><th>rechts</th><th>✓</th></tr></thead><tbody>${o || '<tr><td colspan="7" class="rhint">keine Maste</td></tr>'}</tbody></table>`;
 }
 /* Stützpunkte */
 function renderStp() {
@@ -331,6 +331,7 @@ function cleanKorr() { let n = 0; stpList().forEach(({ m, s, key }) => { const r
 /* ---------- Eingaben ---------- */
 REG.addEventListener('input', e => { const t = e.target; if (!B) return;
   if (t.dataset.km) { S.km[t.dataset.km] = t.value; save(); return; }
+  if (t.dataset.arok) { if (t.checked) S.ar[t.dataset.arok] = new Date().toISOString(); else delete S.ar[t.dataset.arok]; t.closest('tr').classList.toggle('rardone', t.checked); save(); return; }
   const st = t.closest('.rstp'); if (st && t.dataset.f === 'aus') { const r = S.m[st.dataset.key] ||= {}, v = num(t.value), sg = asSgn(auslSoll(Lof(st.dataset.key, r)));
     r.aus = v == null ? '' : String(Math.round(v * 10) * sg); r.ts = new Date().toISOString(); save(); upd(st); return; }
   if (st && t.dataset.f) { const r = S.m[st.dataset.key] ||= {}, f = t.dataset.f, u = U[uKey(f)];
@@ -351,7 +352,7 @@ REG.addEventListener('click', e => { const ar = e.target.closest('[data-ar]');
 
 /* ---------- Baustellen laden / importieren ---------- */
 const today = () => (S?.g?.Date || new Date().toISOString().slice(0, 10));
-function norm(o) { return { v: 6, cfg: { ...DEF, ...(B.cfg || {}), ...(o.cfg || {}) }, m: o.m || {}, kw: o.kw || {}, g: o.g || {}, km: o.km || {} }; }
+function norm(o) { return { v: 6, cfg: { ...DEF, ...(B.cfg || {}), ...(o.cfg || {}) }, m: o.m || {}, kw: o.kw || {}, g: o.g || {}, km: o.km || {}, ar: o.ar || {} }; }
 async function refreshList() { const ks = await DB.keys('baustellen'); list = [];
   for (const k of ks) { const b = await DB.get('baustellen', k); list.push({ id: k, name: b?.meta?.name || k }); } }
 async function loadBs(id) { B = await DB.get('baustellen', id); if (!B) return; S = norm(await DB.get('mess', id) || {}); try { localStorage.setItem(LAST, id); } catch {} head(); render(); }
@@ -429,9 +430,15 @@ function exportXlsx() {
   B.kettenwerke.filter(x => !k || x.nr === k.nr).forEach(x => [['a', x.von, x.vonFD], ['b', x.bis, x.bisFD]].forEach(([e, mid, fd]) => {
     if (fd !== 'b') { rs.push([x.nr, x.name, mid, 'FA']); return; } const y = rsEnd(x, e);
     rs.push([x.nr, x.name, mid, 'Rsp', y.L != null ? Math.round(y.L) : '', y.so ? { v: Math.round(y.so.a / 10) / 100, s: 7 } : '', y.r['ok' + e] ? { v: 'i.O.', s: 3 } : { v: 'offen', s: 6 }, y.r['n' + e] || '']); }));
+  const ars = [[{ v: 'Mastausrichtung (Ebs 02.03.13 Bl. 1 / 02.03.14 Bl. 1)', s: 5 }], ['Eckstiel-Abstand zur Lotrechten in mm/m (Waage 1,0 m), Blick vom Gleis zum Mast'], [],
+    ['Mast', 'Typ', 'Blick von', 'vorne', 'hinten', 'links', 'rechts', 'Status', 'Hinweis'].map(H)];
+  if (B.ausrichtung) B.maste.forEach(m => { const a = B.ausrichtung[m.id]; if (!a) return;
+    if (k && !kwEnd(m.id) && !m.stp.some((s, i) => kwOf(m.id + '#' + i) === String(k.nr))) return;
+    ars.push([m.id, a.t, a.gl || '', ...(a.w || ['', '', '', '']), S.ar[m.id] ? { v: 'ausgerichtet', s: 3 } : { v: 'offen', s: 6 }, a.hw || '']); });
   const blob = xlsx([
     { name: 'Fertigmeldung', xml: sheetXml([...kopf, hd, ...body], [9, 5, 9, 10, 7, 28, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 16, 11, 14, 9, 30]) },
     { name: 'Radspanner', xml: sheetXml(rs, [5, 30, 10, 11, 12, 11, 10, 30]) },
+    ...(B.ausrichtung ? [{ name: 'Ausrichtung', xml: sheetXml(ars, [10, 6, 18, 8, 8, 8, 8, 13, 34]) }] : []),
     { name: 'Zusammenfassung', xml: sheetXml(sum, [18, 12, 12, 30]) },
     ...(() => { const kk = korrekturen().filter(x => !k || kwOf(x.key) === String(k.nr)), lg = (B.meta.korrekturen || []).filter(x => !k || kwOf(x.mast + '#' + (x.stp - 1)) === String(k.nr));
       if (!kk.length && !lg.length) return []; const rows = [[{ v: 'Soll-Korrekturen', s: 5 }], [], ['Mast', 'Stp', 'Wert', 'Soll Plan', 'Soll korrigiert', 'Datum', 'Prüfer', 'Stand'].map(H)];

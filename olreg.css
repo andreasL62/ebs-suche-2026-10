@@ -98,3 +98,4 @@ body.regopen { overflow: hidden; }
 #reg table.rart td.rarm { text-align: left; }
 #reg table.rart td.rarm span { display: block; font-size: 11px; color: var(--muted); }
 #reg table.rart td.rarm span.rkortxt { color: #b45309; }
+#reg table.rart tr.rardone td { background: color-mix(in srgb, #1a7f37 14%, transparent); }
