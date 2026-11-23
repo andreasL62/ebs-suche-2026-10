@@ -145,22 +145,22 @@ function shell() {
       <input id="rQ" type="search" placeholder="Mast suchen" aria-label="Suche">
       <select id="rFlt" aria-label="Filter"><option value="">alle</option><option value="open">offen</option><option value="nok">außer Tol.</option><option value="ok">i.O.</option></select>
     </div>
-    <nav class="rtabs" id="rTabs"><button data-t="stp" class="on"><span class="rlg">Stützpunkte</span><span class="rsm">Stp</span></button><button data-t="kw"><span class="rlg">Kettenwerke</span><span class="rsm">KW</span></button><button data-t="ar"><span class="rlg">Ausrichtung</span><span class="rsm">Ausr.</span></button><button data-t="aus"><span class="rlg">Fertigmeldung</span><span class="rsm">Meldung</span></button><button data-t="cfg" title="Einstellungen">⚙</button></nav>
+    <nav class="rtabs" id="rTabs"><button data-t="stp" class="on"><span class="rlg">Stützpunkte</span><span class="rsm">Stp</span></button><button data-t="kw"><span class="rlg">Kettenwerke</span><span class="rsm">KW</span></button><button data-t="ar"><span class="rlg">Ausrichtung</span><span class="rsm">Ausr.</span></button><button data-t="be"><span class="rlg">Bestücken</span><span class="rsm">Best.</span></button><button data-t="aus"><span class="rlg">Fertigmeldung</span><span class="rsm">Meldung</span></button><button data-t="cfg" title="Einstellungen">⚙</button></nav>
   </div>
-  <div class="rmain"><section id="r-stp"></section><section id="r-kw" hidden></section><section id="r-ar" hidden></section><section id="r-aus" hidden></section><section id="r-cfg" hidden></section></div>`;
+  <div class="rmain"><section id="r-stp"></section><section id="r-kw" hidden></section><section id="r-ar" hidden></section><section id="r-be" hidden></section><section id="r-aus" hidden></section><section id="r-cfg" hidden></section></div>`;
   q('#rClose').onclick = close;
   q('#rMoreB').onclick = () => { const p = q('#rMore'); p.hidden = !p.hidden; q('#rMoreB').setAttribute('aria-expanded', !p.hidden); };
   q('#rImp').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) importFile(f); };
   q('#rBs').onchange = e => e.target.value === '' ? null : loadBs(e.target.value);
   q('#rTabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; qa('#rTabs button').forEach(x => x.classList.toggle('on', x === b)); render(); };
   q('#rKw').onchange = e => { S.g.kwSel = e.target.value; save(); render(); };
-  q('#rQ').oninput = () => { if (tab() === 'stp') renderStp(); else if (tab() === 'ar') renderAr(); };
+  q('#rQ').oninput = () => { if (tab() === 'stp') renderStp(); else if (tab() === 'ar') renderAr(); else if (tab() === 'be') renderBe(); };
   q('#rFlt').onchange = renderStp;
 }
 const tab = () => q('#rTabs button.on').dataset.t;
-function render() { if (!B) return renderEmpty(); ['stp', 'kw', 'ar', 'aus', 'cfg'].forEach(t => q('#r-' + t).hidden = t !== tab());
-  ({ stp: renderStp, kw: renderKw, ar: renderAr, aus: renderAus, cfg: renderCfg })[tab()](); }
-function renderEmpty() { ['kw', 'ar', 'aus', 'cfg'].forEach(t => q('#r-' + t).hidden = true); q('#r-stp').hidden = false;
+function render() { if (!B) return renderEmpty(); ['stp', 'kw', 'ar', 'be', 'aus', 'cfg'].forEach(t => q('#r-' + t).hidden = t !== tab());
+  ({ stp: renderStp, kw: renderKw, ar: renderAr, be: renderBe, aus: renderAus, cfg: renderCfg })[tab()](); }
+function renderEmpty() { ['kw', 'ar', 'be', 'aus', 'cfg'].forEach(t => q('#r-' + t).hidden = true); q('#r-stp').hidden = false;
   q('#rSub').textContent = ''; q('#r-stp').innerHTML = `<div class="rnote">Noch keine Baustelle auf diesem Gerät. Die Baustellen-Datei (<b>*.olreg</b>) wird am PC erzeugt und hier über <b>Import</b> geladen.</div>`; }
 function head() {
   const sel = q('#rBs'); sel.innerHTML = list.map(b => `<option value="${h(b.id)}">${h(b.name)}</option>`).join('') + (list.length ? '' : '<option value="">– keine Baustelle –</option>');
@@ -188,6 +188,21 @@ function renderAr() {
     o += `<tr class="${ok ? 'rardone' : ''}"><td class="rarm"><b>${h(m.id)}</b>${a.gl ? `<span>${h(a.gl)}</span>` : ''}${a.hw ? `<span class="rkortxt">${h(a.hw)}</span>` : ''}</td><td>${a.t}</td>${w}<td><input type="checkbox" data-arok="${h(m.id)}" ${ok ? 'checked' : ''} aria-label="ausgerichtet"></td></tr>`; });
   q('#r-ar').innerHTML = `<p class="rhint rpad">Eckstiel-Abstand zur Lotrechten in mm/m (Waage 1,0 m), Blick vom Gleis zum Mast. FM = Flachmast, WM = Winkelmast.<br>Prüfen: ${ebsTag('02.03.13', 'Ebs 02.03.13 Bl. 1')} ${ebsTag('02.03.14', 'Ebs 02.03.14 Bl. 1')}</p>
     <table class="rart"><thead><tr><th>Mast</th><th></th><th>vorne</th><th>hinten</th><th>links</th><th>rechts</th><th>✓</th></tr></thead><tbody>${o || '<tr><td colspan="7" class="rhint">keine Maste</td></tr>'}</tbody></table>`;
+}
+/* Bestücken: Montagehöhen je Mast (m) – Ausleger, Radspanner, feste Abfangung, Mehrgleisausleger */
+const mtF = v => v == null ? '' : v.toFixed(2).replace('.', ',');
+function mastVis(m, qq, ks) { return !(qq && !(m.id + ' ' + (m.bem || '')).toLowerCase().includes(qq)) && !(ks && !kwEnd(m.id) && !m.stp.some((s, i) => kwOf(m.id + '#' + i) === ks)); }
+function renderBe() {
+  const A = B.bestueckung, qq = (q('#rQ').value || '').toLowerCase(), ks = kwSel();
+  if (!A) { q('#r-be').innerHTML = '<div class="rnote">Diese Baustellen-Datei enthält noch keine Montagehöhen. Neue .olreg vom PC importieren.</div>'; return; }
+  const two = (a, b) => [a, b].filter(v => v != null).map(mtF).join('<br>');
+  let o = '';
+  B.maste.forEach(m => { const a = A[m.id]; if (!a || !mastVis(m, qq, ks)) return; const ok = !!S.be[m.id];
+    o += `<tr class="${ok ? 'rardone' : ''}"><td class="rarm"><b>${h(m.id)}</b></td><td>${two(a.ab[0], a.ab[1])}</td><td>${two(a.ab[2], a.ab[3])}</td>
+      <td>${a.rsp.map(mtF).join('<br>')}${a.gfw != null ? `<span class="rgfw">GFW ${mtF(a.gfw)}</span>` : ''}</td><td>${a.fa.map(mtF).join('<br>')}</td><td>${mtF(a.mga)}</td>
+      <td><input type="checkbox" data-beok="${h(m.id)}" ${ok ? 'checked' : ''} aria-label="bestückt"></td></tr>`; });
+  q('#r-be').innerHTML = `<p class="rhint rpad">Montagehöhen in m. MF = von Mastfuß, SO = von Schienenoberkante. Ausleger: oben / unten. GFW = Radspanner v. MF-GFW.</p>
+    <table class="rart rbet"><thead><tr><th>Mast</th><th>Ausl.<br>MF</th><th>Ausl.<br>SO</th><th>Rsp<br>MF</th><th>FA<br>MF</th><th>MGA<br>MF</th><th>✓</th></tr></thead><tbody>${o || '<tr><td colspan="7" class="rhint">keine Maste</td></tr>'}</tbody></table>`;
 }
 /* Stützpunkte */
 function renderStp() {
@@ -331,6 +346,7 @@ function cleanKorr() { let n = 0; stpList().forEach(({ m, s, key }) => { const r
 /* ---------- Eingaben ---------- */
 REG.addEventListener('input', e => { const t = e.target; if (!B) return;
   if (t.dataset.km) { S.km[t.dataset.km] = t.value; save(); return; }
+  if (t.dataset.beok) { if (t.checked) S.be[t.dataset.beok] = new Date().toISOString(); else delete S.be[t.dataset.beok]; t.closest('tr').classList.toggle('rardone', t.checked); save(); return; }
   if (t.dataset.arok) { if (t.checked) S.ar[t.dataset.arok] = new Date().toISOString(); else delete S.ar[t.dataset.arok]; t.closest('tr').classList.toggle('rardone', t.checked); save(); return; }
   const st = t.closest('.rstp'); if (st && t.dataset.f === 'aus') { const r = S.m[st.dataset.key] ||= {}, v = num(t.value), sg = asSgn(auslSoll(Lof(st.dataset.key, r)));
     r.aus = v == null ? '' : String(Math.round(v * 10) * sg); r.ts = new Date().toISOString(); save(); upd(st); return; }
@@ -352,7 +368,7 @@ REG.addEventListener('click', e => { const ar = e.target.closest('[data-ar]');
 
 /* ---------- Baustellen laden / importieren ---------- */
 const today = () => (S?.g?.Date || new Date().toISOString().slice(0, 10));
-function norm(o) { return { v: 6, cfg: { ...DEF, ...(B.cfg || {}), ...(o.cfg || {}) }, m: o.m || {}, kw: o.kw || {}, g: o.g || {}, km: o.km || {}, ar: o.ar || {} }; }
+function norm(o) { return { v: 6, cfg: { ...DEF, ...(B.cfg || {}), ...(o.cfg || {}) }, m: o.m || {}, kw: o.kw || {}, g: o.g || {}, km: o.km || {}, ar: o.ar || {}, be: o.be || {} }; }
 async function refreshList() { const ks = await DB.keys('baustellen'); list = [];
   for (const k of ks) { const b = await DB.get('baustellen', k); list.push({ id: k, name: b?.meta?.name || k }); } }
 async function loadBs(id) { B = await DB.get('baustellen', id); if (!B) return; S = norm(await DB.get('mess', id) || {}); try { localStorage.setItem(LAST, id); } catch {} head(); render(); }
@@ -435,9 +451,15 @@ function exportXlsx() {
   if (B.ausrichtung) B.maste.forEach(m => { const a = B.ausrichtung[m.id]; if (!a) return;
     if (k && !kwEnd(m.id) && !m.stp.some((s, i) => kwOf(m.id + '#' + i) === String(k.nr))) return;
     ars.push([m.id, a.t, a.gl || '', ...(a.w || ['', '', '', '']), S.ar[m.id] ? { v: 'ausgerichtet', s: 3 } : { v: 'offen', s: 6 }, a.hw || '']); });
+  const bes = [[{ v: 'Bestücken – Montagehöhen [m]', s: 5 }], ['MF = von Mastfuß, SO = von Schienenoberkante'], [],
+    ['Mast', 'Ausl. oben v. MF', 'Ausl. unten v. MF', 'Ausl. oben v. SO', 'Ausl. unten v. SO', 'Rsp v. MF', 'Rsp 2 v. MF', 'GFW v. MF', 'FA v. MF', 'FA 2 v. MF', 'MGA v. MF', 'Status'].map(H)];
+  if (B.bestueckung) B.maste.forEach(m => { const a = B.bestueckung[m.id]; if (!a || (k && !mastVis(m, '', String(k.nr)))) return;
+    const c2 = v => v == null ? '' : { v, s: 7 };
+    bes.push([m.id, ...a.ab.map(c2), c2(a.rsp[0]), c2(a.rsp[1]), c2(a.gfw), c2(a.fa[0]), c2(a.fa[1]), c2(a.mga), S.be[m.id] ? { v: 'bestückt', s: 3 } : { v: 'offen', s: 6 }]); });
   const blob = xlsx([
     { name: 'Fertigmeldung', xml: sheetXml([...kopf, hd, ...body], [9, 5, 9, 10, 7, 28, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 16, 11, 14, 9, 30]) },
     { name: 'Radspanner', xml: sheetXml(rs, [5, 30, 10, 11, 12, 11, 10, 30]) },
+    ...(B.bestueckung ? [{ name: 'Bestücken', xml: sheetXml(bes, [10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 11]) }] : []),
     ...(B.ausrichtung ? [{ name: 'Ausrichtung', xml: sheetXml(ars, [10, 6, 18, 8, 8, 8, 8, 13, 34]) }] : []),
     { name: 'Zusammenfassung', xml: sheetXml(sum, [18, 12, 12, 30]) },
     ...(() => { const kk = korrekturen().filter(x => !k || kwOf(x.key) === String(k.nr)), lg = (B.meta.korrekturen || []).filter(x => !k || kwOf(x.mast + '#' + (x.stp - 1)) === String(k.nr));

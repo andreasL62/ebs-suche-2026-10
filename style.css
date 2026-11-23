@@ -268,3 +268,10 @@ mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padd
 #updGo { height: 34px; padding: 0 14px; border: 0; border-radius: 9px; background: var(--accent-ink); color: var(--accent);
   font-weight: 700; font-size: 14px; cursor: pointer; touch-action: manipulation; }
 #updLater { height: 34px; width: 30px; border: 0; background: none; color: var(--accent-ink); font-size: 15px; cursor: pointer; }
+
+/* Knöpfe Inhalt/Regulierung/Daten in der Ebs-Nummer-Zeile, Textsuche hat die volle Breite */
+.iconbtn .sm { display: none; }
+@media (max-width: 600px) {
+  .numrow .iconbtn { padding: 0 9px; }
+  .iconbtn .lg { display: none; } .iconbtn .sm { display: inline; }
+}

@@ -1,6 +1,6 @@
 // Offline-Start der App: App-Dateien kommen aus dem Gerätespeicher, Updates werden im Hintergrund geholt.
 // PDF und Suchdaten liegen nicht hier, sondern im Dateispeicher der App (siehe store.js).
-const CACHE = 'ebs2-v28';
+const CACHE = 'ebs2-v30';
 const SHELL = ['./', 'index.html', 'app.js', 'store.js', 'opfs-worker.js', 'style.css', 'olreg.js', 'olreg.css', 'manifest.webmanifest',
   'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'lib/pdf.min.js', 'lib/pdf.worker.min.js'];
 const NO_CACHE = ['/doc.pdf', '/ebs-daten.bin', '/info', '/ca.cer'];
