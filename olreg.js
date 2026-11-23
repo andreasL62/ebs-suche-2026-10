@@ -145,22 +145,22 @@ function shell() {
       <input id="rQ" type="search" placeholder="Mast suchen" aria-label="Suche">
       <select id="rFlt" aria-label="Filter"><option value="">alle</option><option value="open">offen</option><option value="nok">außer Tol.</option><option value="ok">i.O.</option></select>
     </div>
-    <nav class="rtabs" id="rTabs"><button data-t="stp" class="on">Stützpunkte</button><button data-t="kw"><span class="rlg">Kettenwerke</span><span class="rsm">KW</span></button><button data-t="aus">Fertigmeldung</button><button data-t="cfg" title="Einstellungen">⚙</button></nav>
+    <nav class="rtabs" id="rTabs"><button data-t="stp" class="on"><span class="rlg">Stützpunkte</span><span class="rsm">Stp</span></button><button data-t="kw"><span class="rlg">Kettenwerke</span><span class="rsm">KW</span></button><button data-t="ar"><span class="rlg">Ausrichtung</span><span class="rsm">Ausr.</span></button><button data-t="aus"><span class="rlg">Fertigmeldung</span><span class="rsm">Meldung</span></button><button data-t="cfg" title="Einstellungen">⚙</button></nav>
   </div>
-  <div class="rmain"><section id="r-stp"></section><section id="r-kw" hidden></section><section id="r-aus" hidden></section><section id="r-cfg" hidden></section></div>`;
+  <div class="rmain"><section id="r-stp"></section><section id="r-kw" hidden></section><section id="r-ar" hidden></section><section id="r-aus" hidden></section><section id="r-cfg" hidden></section></div>`;
   q('#rClose').onclick = close;
   q('#rMoreB').onclick = () => { const p = q('#rMore'); p.hidden = !p.hidden; q('#rMoreB').setAttribute('aria-expanded', !p.hidden); };
   q('#rImp').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) importFile(f); };
   q('#rBs').onchange = e => e.target.value === '' ? null : loadBs(e.target.value);
   q('#rTabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; qa('#rTabs button').forEach(x => x.classList.toggle('on', x === b)); render(); };
   q('#rKw').onchange = e => { S.g.kwSel = e.target.value; save(); render(); };
-  q('#rQ').oninput = () => { if (tab() === 'stp') renderStp(); };
+  q('#rQ').oninput = () => { if (tab() === 'stp') renderStp(); else if (tab() === 'ar') renderAr(); };
   q('#rFlt').onchange = renderStp;
 }
 const tab = () => q('#rTabs button.on').dataset.t;
-function render() { if (!B) return renderEmpty(); ['stp', 'kw', 'aus', 'cfg'].forEach(t => q('#r-' + t).hidden = t !== tab());
-  ({ stp: renderStp, kw: renderKw, aus: renderAus, cfg: renderCfg })[tab()](); }
-function renderEmpty() { ['kw', 'aus', 'cfg'].forEach(t => q('#r-' + t).hidden = true); q('#r-stp').hidden = false;
+function render() { if (!B) return renderEmpty(); ['stp', 'kw', 'ar', 'aus', 'cfg'].forEach(t => q('#r-' + t).hidden = t !== tab());
+  ({ stp: renderStp, kw: renderKw, ar: renderAr, aus: renderAus, cfg: renderCfg })[tab()](); }
+function renderEmpty() { ['kw', 'ar', 'aus', 'cfg'].forEach(t => q('#r-' + t).hidden = true); q('#r-stp').hidden = false;
   q('#rSub').textContent = ''; q('#r-stp').innerHTML = `<div class="rnote">Noch keine Baustelle auf diesem Gerät. Die Baustellen-Datei (<b>*.olreg</b>) wird am PC erzeugt und hier über <b>Import</b> geladen.</div>`; }
 function head() {
   const sel = q('#rBs'); sel.innerHTML = list.map(b => `<option value="${h(b.id)}">${h(b.name)}</option>`).join('') + (list.length ? '' : '<option value="">– keine Baustelle –</option>');
@@ -176,6 +176,19 @@ function bsumTxt(m) { const ks = kwSel(); const v = m.stp.map((s, i) => { const 
 function asumTxt(m) { const ks = kwSel(); const v = m.stp.map((s, i) => { const key = m.id + '#' + i; if (ks && kwOf(key) !== ks) return null;
   const as = auslSoll(Lof(key, S.m[key] || {})); return as == null ? '?' : Math.round(as / 10) === 0 ? '0 cm' : ausFmt(as, key); }).filter(x => x != null);
   return v.length ? 'Ausl. ' + (T() == null ? 'T eingeben' : v.join(' / ')) : ''; }
+/* Mastausrichtung (Neigung unbelasteter Maste, Ebs 02.03.13/14): Eckstiel-Abstand mm/m an der 1-m-Waage */
+function renderAr() {
+  const A = B.ausrichtung, qq = (q('#rQ').value || '').toLowerCase(), ks = kwSel();
+  if (!A) { q('#r-ar').innerHTML = '<div class="rnote">Diese Baustellen-Datei enthält noch keine Ausrichtwerte. Neue .olreg vom PC importieren.</div>'; return; }
+  let o = '';
+  B.maste.forEach(m => { const a = A[m.id]; if (!a) return;
+    if (qq && !(m.id + ' ' + (m.bem || '')).toLowerCase().includes(qq)) return;
+    if (ks && !kwEnd(m.id) && !m.stp.some((s, i) => kwOf(m.id + '#' + i) === ks)) return;
+    const w = a.w ? a.w.map(v => `<td>${v}</td>`).join('') : '<td colspan="4" class="rhint">offen</td>';
+    o += `<tr><td class="rarm"><b>${h(m.id)}</b>${a.gl ? `<span>${h(a.gl)}</span>` : ''}${a.hw ? `<span class="rkortxt">${h(a.hw)}</span>` : ''}</td><td>${a.t}</td>${w}</tr>`; });
+  q('#r-ar').innerHTML = `<p class="rhint rpad">Eckstiel-Abstand zur Lotrechten in mm/m (Waage 1,0 m), Blick vom Gleis zum Mast. FM = Flachmast, WM = Winkelmast.<br>Prüfen: ${ebsTag('02.03.13', 'Ebs 02.03.13 Bl. 1')} ${ebsTag('02.03.14', 'Ebs 02.03.14 Bl. 1')}</p>
+    <table class="rart"><thead><tr><th>Mast</th><th></th><th>vorne</th><th>hinten</th><th>links</th><th>rechts</th></tr></thead><tbody>${o || '<tr><td colspan="6" class="rhint">keine Maste</td></tr>'}</tbody></table>`;
+}
 /* Stützpunkte */
 function renderStp() {
   const qq = (q('#rQ').value || '').toLowerCase(), fl = q('#rFlt').value, ks = kwSel(); let o = '';

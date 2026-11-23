@@ -90,3 +90,11 @@ body.regopen { overflow: hidden; }
 #reg .rpre { width: 26px; }
 #reg .rok input[type=checkbox] { flex: 0 0 auto; }
 #reg input.rv[readonly] { background: var(--panel); }
+#reg .rsm { display: none; }
+@media (max-width: 430px) { #reg .rlg { display: none; } #reg .rsm { display: inline; } }
+#reg table.rart { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 15px; }
+#reg table.rart th { position: sticky; top: -10px; z-index: 2; background: var(--panel); border-bottom: 2px solid var(--accent); padding: 6px 4px; font-size: 13px; }
+#reg table.rart td { border-bottom: 1px solid var(--line); padding: 6px 4px; text-align: center; font-variant-numeric: tabular-nums; }
+#reg table.rart td.rarm { text-align: left; }
+#reg table.rart td.rarm span { display: block; font-size: 11px; color: var(--muted); }
+#reg table.rart td.rarm span.rkortxt { color: #b45309; }
