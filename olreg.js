@@ -558,7 +558,16 @@ async function syPush() { const u = syBase(); if (!u || syBusy) return syShow();
   finally { syBusy = false; syShow(); } }
 function syApply(p, x) { const l = S.st[p]; if (!x?.t || (l && l[0] >= x.t)) return false; if (!setVal(p, x.v, x.t)) return false;
   S.st[p] = [x.t, x.n || '']; const k = x.n || '?'; if (k !== (S.g.Name || '') && (!S.sy[k] || S.sy[k] < x.t)) S.sy[k] = x.t; return true; }
+/* Einträge aus der Zeit vor den Stempeln (vor v33) nachträglich stempeln, damit sie hochgeladen werden */
+function stampOld() { if (!S) return 0; const st = S.st ||= {}, n0 = S.g.Name || '', now = nowIso(); let n = 0;
+  const add = (p, t) => { if (!st[p]) { st[p] = [t || now, n0]; (S.q ||= {})[p] = 1; n++; } };
+  Object.entries(S.m || {}).forEach(([k, r]) => Object.keys(r || {}).forEach(f => { if (f !== 'ts' && r[f] !== '' && r[f] != null) add('m|' + k + '|' + f, r.ts); }));
+  ['be', 'ar'].forEach(a => Object.entries(S[a] || {}).forEach(([k, v]) => add(a + '|' + k, typeof v === 'string' && v[4] === '-' ? v : null)));
+  Object.entries(S.kw || {}).forEach(([k, r]) => Object.keys(r || {}).forEach(f => { if (r[f] !== '' && r[f] != null) add('kw|' + k + '|' + f); }));
+  Object.entries(S.km || {}).forEach(([k, v]) => { if (v !== '' && v != null) add('km|' + k); });
+  if (n) save(); return n; }
 function syConnect() { if (ES) { ES.close(); ES = null; } const u = syBase(); if (!u) { syState = ''; return syShow(); }
+  stampOld();
   syState = 'verbinde …'; syShow();
   ES = new EventSource(u + '.json');
   const on = e => { let d; try { d = JSON.parse(e.data); } catch { return; } if (!d) return; const ch = [];
