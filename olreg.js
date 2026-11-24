@@ -199,10 +199,11 @@ function renderBe() {
   const two = (a, b) => [a, b].filter(v => v != null).map(mtF).join('<br>');
   let o = '';
   B.maste.forEach(m => { const a = A[m.id]; if (!a || !mastVis(m, qq, ks)) return; const ok = !!S.be[m.id];
-    o += `<tr class="${ok ? 'rardone' : ''}"><td class="rarm"><b>${h(m.id)}</b></td><td>${two(a.ab[0], a.ab[1])}</td><td>${two(a.ab[2], a.ab[3])}</td>
+    const lp = B.lageplan?.[m.id];
+    o += `<tr class="${ok ? 'rardone' : ''}"><td class="rarm">${lp ? `<button type="button" class="rlpb" data-lp="${h(m.id)}" title="Lageplan-Ausschnitt">${h(m.id)}</button>` : `<b>${h(m.id)}</b>`}</td><td>${two(a.ab[0], a.ab[1])}</td><td>${two(a.ab[2], a.ab[3])}</td>
       <td>${a.rsp.map(mtF).join('<br>')}${a.gfw != null ? `<span class="rgfw">GFW ${mtF(a.gfw)}</span>` : ''}</td><td>${a.fa.map(mtF).join('<br>')}</td><td>${mtF(a.mga)}</td>
       <td><input type="checkbox" data-beok="${h(m.id)}" ${ok ? 'checked' : ''} aria-label="bestückt"></td></tr>`; });
-  q('#r-be').innerHTML = `<p class="rhint rpad">Montagehöhen in m. MF = von Mastfuß, SO = von Schienenoberkante. Ausleger: oben / unten. GFW = Radspanner v. MF-GFW.</p>
+  q('#r-be').innerHTML = `<p class="rhint rpad">Montagehöhen in m. MF = von Mastfuß, SO = von Schienenoberkante. Ausleger: oben / unten. GFW = Radspanner v. MF-GFW.${B.lageplan ? ' Unterstrichene Mastnummer antippen = Lageplan-Ausschnitt.' : ''}</p>
     <table class="rart rbet"><thead><tr><th>Mast</th><th>Ausl.<br>MF</th><th>Ausl.<br>SO</th><th>Rsp<br>MF</th><th>FA<br>MF</th><th>MGA<br>MF</th><th>✓</th></tr></thead><tbody>${o || '<tr><td colspan="7" class="rhint">keine Maste</td></tr>'}</tbody></table>`;
 }
 /* Stützpunkte */
@@ -359,7 +360,25 @@ REG.addEventListener('input', e => { const t = e.target; if (!B) return;
   if (t.dataset.cfg) { S.cfg[t.dataset.cfg] = num(t.value) ?? DEF[t.dataset.cfg]; save(); }
 });
 REG.addEventListener('change', e => { const kr = e.target.closest?.('[data-kwr]'); if (kr && e.target.dataset.k && e.target.dataset.k !== 'fp') kwRow(kr); });
-REG.addEventListener('click', e => { const ar = e.target.closest('[data-ar]');
+/* Lageplan-Ausschnitt (Bild aus der .olreg, Schlüssel lageplan[Mast] = {bl, img base64-JPEG}) */
+function showLp(id) {
+  const lp = B.lageplan?.[id]; if (!lp) return;
+  let w = document.getElementById('rLp');
+  if (!w) { w = document.createElement('div'); w.id = 'rLp'; w.setAttribute('role', 'dialog');
+    w.innerHTML = `<div class="rlph"><b id="rLpT"></b><span class="rhint" id="rLpS"></span><button type="button" class="iconbtn" id="rLpZ">Ganz</button><button type="button" class="iconbtn" id="rLpX" aria-label="Schließen">✕</button></div><div class="rlpw" id="rLpW"><img id="rLpI" alt="Lageplan-Ausschnitt"></div>`;
+    REG.appendChild(w);
+    const W = w.querySelector('#rLpW'), I = w.querySelector('#rLpI');
+    const mid = () => setTimeout(() => { W.scrollLeft = (W.scrollWidth - W.clientWidth) / 2; W.scrollTop = (W.scrollHeight - W.clientHeight) / 2; }, 30);
+    const zoom = () => { const fit = I.classList.toggle('rfit'); w.querySelector('#rLpZ').textContent = fit ? 'Detail' : 'Ganz'; mid(); };
+    w.querySelector('#rLpZ').onclick = zoom; I.onclick = zoom; I.onload = mid;
+    w.querySelector('#rLpX').onclick = () => { w.hidden = true; }; }
+  const I = w.querySelector('#rLpI'); I.classList.remove('rfit'); w.querySelector('#rLpZ').textContent = 'Ganz';
+  I.src = 'data:image/jpeg;base64,' + lp.img;
+  w.querySelector('#rLpT').textContent = id; w.querySelector('#rLpS').textContent = `Lageplan Bl. ${lp.bl}`;
+  w.hidden = false; I.onload?.();
+}
+REG.addEventListener('click', e => { const lpb = e.target.closest('[data-lp]'); if (lpb) { e.preventDefault(); showLp(lpb.dataset.lp); return; }
+  const ar = e.target.closest('[data-ar]');
   if (ar) { e.preventDefault(); const st = ar.closest('.rstp'), key = st.dataset.key, P = ausAr(key, true), N = ausAr(key, false);
     ar.textContent = ar.textContent === P ? N : P; st.querySelector('[data-f="aus"]').dispatchEvent(new Event('input', { bubbles: true })); return; }
   const p = e.target.closest('[data-pm]');
