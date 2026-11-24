@@ -112,3 +112,8 @@ body.regopen { overflow: hidden; }
 #rLp .rlpw { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; background: #fff; display: flex; }
 #rLp img { flex: 0 0 auto; width: auto; max-width: none; height: auto; margin: auto; display: block; cursor: zoom-out; }
 #rLp img.rfit { flex: 1 1 auto; width: 100%; max-width: 100%; cursor: zoom-in; }
+#reg .rwho { display: block; font-size: 10px; line-height: 1.15; color: var(--muted); white-space: nowrap; }
+#reg .rwhol { margin-top: 4px; }
+#reg .rsync h3 { margin-top: 0; }
+#reg .rsyd { font-size: 13px; font-weight: 700; padding: 0 4px; white-space: nowrap; }
+#reg .rsyd.on { color: #1a7f37; } #reg .rsyd.off { color: var(--muted); } #reg .rsyd.err { color: #c62828; }

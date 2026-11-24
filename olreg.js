@@ -39,6 +39,13 @@ const LAST = 'ebs2.olreg.last';
 let saveT = 0;
 function save() { if (!B) return; clearTimeout(saveT); const id = B.meta.id, s = S;
   saveT = setTimeout(() => DB.put('mess', id, s).catch(e => alert('Speichern fehlgeschlagen: ' + e)), 250); }
+/* Abgleich: je Feld Stempel [Zeit ISO, Name] in S.st['m|Mast#i|feld' | 'be|Mast' | 'ar|Mast' | 'kw|nr|feld' | 'km|Mast'] */
+const nowIso = () => new Date().toISOString();
+function stamp(p) { (S.st ||= {})[p] = [nowIso(), S.g.Name || '']; syQueue(p); }
+const stOf = p => S.st?.[p];
+const dtT = t => new Date(t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+const whoT = s => s ? `${s[1] || '?'} ${dtT(s[0])}` : '';
+function lastOf(pre) { let b = null; for (const p in S.st || {}) if (p.startsWith(pre) && (!b || S.st[p][0] > b[0])) b = S.st[p]; return b; }
 const cfg = () => S.cfg;
 const T = () => num(S.g.T);
 const mast = id => B.maste.find(m => m.id === id);
@@ -128,7 +135,7 @@ function openEbs(nr) {
 function shell() {
   REG.innerHTML = `
   <div class="rhead">
-    <div class="rrow1"><button type="button" class="iconbtn" id="rClose" title="Zurück zur Suche">←</button><b class="rtitle">OL-Regulierung</b>
+    <div class="rrow1"><button type="button" class="iconbtn" id="rClose" title="Zurück zur Suche">←</button><b class="rtitle">OL-Regulierung</b><span id="rSyD" class="rsyd" hidden></span>
       <select id="rBs" aria-label="Baustelle"></select>
       <button type="button" class="iconbtn" id="rMoreB" title="Datum, Prüfer, Import" aria-expanded="false">⋯</button></div>
     <div class="rmore" id="rMore" hidden>
@@ -186,10 +193,12 @@ function renderAr() {
     if (qq && !(m.id + ' ' + (m.bem || '')).toLowerCase().includes(qq)) return;
     if (ks && !kwEnd(m.id) && !m.stp.some((s, i) => kwOf(m.id + '#' + i) === ks)) return;
     const w = a.w ? a.w.map(v => `<td>${v}</td>`).join('') : '<td colspan="4" class="rhint">offen</td>', ok = !!S.ar[m.id];
-    o += `<tr class="${ok ? 'rardone' : ''}"><td class="rarm"><b>${h(m.id)}</b>${a.gl ? `<span>${h(a.gl)}</span>` : ''}${a.hw ? `<span class="rkortxt">${h(a.hw)}</span>` : ''}</td><td>${a.t}</td>${w}<td><input type="checkbox" data-arok="${h(m.id)}" ${ok ? 'checked' : ''} aria-label="ausgerichtet"></td></tr>`; });
+    o += `<tr class="${ok ? 'rardone' : ''}"><td class="rarm"><b>${h(m.id)}</b>${a.gl ? `<span>${h(a.gl)}</span>` : ''}${a.hw ? `<span class="rkortxt">${h(a.hw)}</span>` : ''}</td><td>${a.t}</td>${w}<td><input type="checkbox" data-arok="${h(m.id)}" ${ok ? 'checked' : ''} aria-label="ausgerichtet">${whoSp('ar|' + m.id, ok)}</td></tr>`; });
   q('#r-ar').innerHTML = `<p class="rhint rpad">Eckstiel-Abstand zur Lotrechten in mm/m (Waage 1,0 m), Blick vom Gleis zum Mast. FM = Flachmast, WM = Winkelmast.<br>Prüfen: ${ebsTag('02.03.13', 'Ebs 02.03.13 Bl. 1')} ${ebsTag('02.03.14', 'Ebs 02.03.14 Bl. 1')}</p>
     <table class="rart"><thead><tr><th>Mast</th><th></th><th>vorne</th><th>hinten</th><th>links</th><th>rechts</th><th>✓</th></tr></thead><tbody>${o || '<tr><td colspan="7" class="rhint">keine Maste</td></tr>'}</tbody></table>`;
 }
+const whoSp = (p, ok) => `<span class="rwho">${ok ? h(whoT(stOf(p))) : ''}</span>`;
+function okCell(t, p) { t.closest('tr').classList.toggle('rardone', t.checked); const w = t.parentElement.querySelector('.rwho'); if (w) w.textContent = t.checked ? whoT(stOf(p)) : ''; }
 /* Bestücken: Montagehöhen je Mast (m) – Ausleger, Radspanner, feste Abfangung, Mehrgleisausleger */
 const mtF = v => v == null ? '' : v.toFixed(2).replace('.', ',');
 function mastVis(m, qq, ks) { return !(qq && !(m.id + ' ' + (m.bem || '')).toLowerCase().includes(qq)) && !(ks && !kwEnd(m.id) && !m.stp.some((s, i) => kwOf(m.id + '#' + i) === ks)); }
@@ -202,7 +211,7 @@ function renderBe() {
     const lp = B.lageplan?.[m.id];
     o += `<tr class="${ok ? 'rardone' : ''}"><td class="rarm">${lp ? `<button type="button" class="rlpb" data-lp="${h(m.id)}" title="Lageplan-Ausschnitt">${h(m.id)}</button>` : `<b>${h(m.id)}</b>`}</td><td>${two(a.ab[0], a.ab[1])}</td><td>${two(a.ab[2], a.ab[3])}</td>
       <td>${a.rsp.map(mtF).join('<br>')}${a.gfw != null ? `<span class="rgfw">GFW ${mtF(a.gfw)}</span>` : ''}</td><td>${a.fa.map(mtF).join('<br>')}</td><td>${mtF(a.mga)}</td>
-      <td><input type="checkbox" data-beok="${h(m.id)}" ${ok ? 'checked' : ''} aria-label="bestückt"></td></tr>`; });
+      <td><input type="checkbox" data-beok="${h(m.id)}" ${ok ? 'checked' : ''} aria-label="bestückt">${whoSp('be|' + m.id, ok)}</td></tr>`; });
   q('#r-be').innerHTML = `<p class="rhint rpad">Montagehöhen in m. MF = von Mastfuß, SO = von Schienenoberkante. Ausleger: oben / unten. GFW = Radspanner v. MF-GFW.${B.lageplan ? ' Unterstrichene Mastnummer antippen = Lageplan-Ausschnitt.' : ''}</p>
     <table class="rart rbet"><thead><tr><th>Mast</th><th>Ausl.<br>MF</th><th>Ausl.<br>SO</th><th>Rsp<br>MF</th><th>FA<br>MF</th><th>MGA<br>MF</th><th>✓</th></tr></thead><tbody>${o || '<tr><td colspan="7" class="rhint">keine Maste</td></tr>'}</tbody></table>`;
 }
@@ -250,7 +259,7 @@ function fillBody(d) {
         <label class="rf">L zum Festpunkt [m]<span class="rrow"><span class="rpre"></span><input type="number" class="rv rvs" data-f="L" value="${h(r.L ?? '')}" placeholder="${L != null ? Math.round(L) : 'm'}"></span><span class="rhint">${num(r.L) == null && L != null ? 'auto aus km: ' + Math.round(L) + ' m' : ''}</span></label>
         <label class="rf">Auslegerstellung [cm]<span class="rrow rhint"><span class="rpre">Soll</span><input type="text" class="rv" readonly tabindex="-1" data-asv value="${asVal(auslSoll(L), key)}"> <span data-as>${asRest(auslSoll(L), key)}</span></span><span class="rrow"><span class="rpre"></span><label class="rok"><input type="checkbox" data-f="ok_aus" ${r.ok_aus ? 'checked' : ''}>eingestellt</label></span></label>
         <label class="rf">Erledigt<span class="rrow"><label class="rok"><input type="checkbox" data-f="done" ${r.done ? 'checked' : ''}>reguliert</label></span></label>
-      </div><label class="rf">Bemerkung / Maßnahme<textarea rows="2" data-f="note">${h(r.note || '')}</textarea></label></div>`; });
+      </div><label class="rf">Bemerkung / Maßnahme<textarea rows="2" data-f="note">${h(r.note || '')}</textarea></label><div class="rhint rwhol" data-who></div></div>`; });
   d.querySelector('.rbody').innerHTML = x;
   d.querySelectorAll('.rstp').forEach(upd);
 }
@@ -262,7 +271,7 @@ function upd(el) { const key0 = el.dataset.key, m0 = mast(key0.split('#')[0]), s
   set('fh', ck(r, 'fh', so.fh, c.tolFH)); set('sl', ck(r, 'sl', so.sl, c.tolSL)); set('sh', ck(r, 'sh', so.sh, c.tolSH));
   const L = Lof(key, r), xa = ck(r, 'aus', auslSoll(L), c.tolAus), da = el.querySelector('[data-d="aus"]');
   if (da) { if (!xa) { da.textContent = ''; da.className = 'rd'; } else { da.className = 'rd ' + (xa.ok ? 'ok' : 'nok');
-    da.textContent = xa.hk ? '✓ i.O. (abgehakt)' : xa.ok ? '✓ i.O.' : '✗ ' + ausFmt(-xa.d, key) + ' verschieben'; } } const a = el.querySelector('[data-as]'); if (a) a.textContent = asRest(auslSoll(L), key); const av = el.querySelector('[data-asv]'); if (av) av.value = asVal(auslSoll(L), key); }
+    da.textContent = xa.hk ? '✓ i.O. (abgehakt)' : xa.ok ? '✓ i.O.' : '✗ ' + ausFmt(-xa.d, key) + ' verschieben'; } } const a = el.querySelector('[data-as]'); if (a) a.textContent = asRest(auslSoll(L), key); const wl = el.querySelector('[data-who]'); if (wl) { const ls = lastOf('m|' + key + '|'); wl.textContent = ls ? 'zuletzt: ' + whoT(ls) : ''; } const av = el.querySelector('[data-asv]'); if (av) av.value = asVal(auslSoll(L), key); }
 
 /* Kettenwerke & Radspanner */
 function renderKw() {
@@ -282,7 +291,7 @@ function kwRow(el) { const k = kwBy(el.dataset.kwr), r = S.kw[k.nr] || {}, fp = 
   el.innerHTML = `<div class="rrow"><b>KW ${k.nr}</b> ${h(k.name)} <span class="rtag">${h(k.bauart)}</span><span class="rtag">${f2(k.laenge, 1)} m</span>
     <label class="rhint">FP <select data-k="fp"><option value="">${fp && !r.fp ? fp + (k.fp ? ' (lt. Lageplan)' : ' (FA)') : '– wählen –'}</option>${ms}</select></label>${k.fpText ? `<span class="rhint">${h(k.fpText)}</span>` : ''}</div>
     <div class="rtw"><table><tr><th>Abfangung</th><th>Art</th><th>L zum FP [m]</th><th>Soll a [m]</th><th>Ist</th><th></th></tr>${rows}</table></div>`;
-  el.querySelector('[data-k="fp"]').onchange = e => { (S.kw[k.nr] ||= {}).fp = e.target.value; save(); kwRow(el); }; }
+  el.querySelector('[data-k="fp"]').onchange = e => { (S.kw[k.nr] ||= {}).fp = e.target.value; stamp('kw|' + k.nr + '|fp'); save(); kwRow(el); }; }
 
 /* Auswertung */
 function rowsFor() { return stpList().filter(x => !kwSel() || kwOf(x.key) === kwSel()); }
@@ -293,17 +302,48 @@ function renderAus() {
     const cell = (f, sol, tol) => { const x = ck(r, f, sol, tol); return x?.hk ? '<td class="rd ok">✓ i.O.</td>' : x ? `<td class="rd ${x.ok ? 'ok' : 'nok'}">${fmtU(f, num(r[f]))} (${fmtU(f, x.d, { sign: 1 })})</td>` : '<td class="rhint">–</td>'; };
     return `<tr data-st="${st}"><td>${m.id} ${stpLbl(s, i)}</td><td>${s.bauart}</td><td>${kwOf(key) ? 'KW ' + kwOf(key) : ''}</td>${cell('fh', so.fh, c.tolFH)}${cell('sl', so.sl, c.tolSL)}${cell('sh', so.sh, c.tolSH)}${(() => { const x = ck(r, 'aus', as, c.tolAus); return x?.hk ? '<td class="rd ok">✓ i.O.</td>' : x ? `<td class="rd ${x.ok ? 'ok' : 'nok'}">${ausFmt(num(r.aus), key)} (Soll ${ausFmt(as, key)})</td>` : '<td class="rhint">–</td>'; })()}<td>${r.done ? '✓' : ''}</td><td>${h(r.note || '')}</td></tr>`; });
   q('#r-aus').innerHTML = `<div class="rstats"><div><b>${all.length}</b>Stützpunkte</div><div><b class="ok">${ok}</b>i.O.</div><div><b class="nok">${nok}</b>außer Toleranz</div><div><b>${op}</b>offen</div><div><b>${done}</b>reguliert</div></div>
-    <p class="rrow"><button type="button" class="primarybtn" id="rXlsx">Fertigmeldung als Excel</button><button type="button" class="secbtn" id="rBak">Sicherung speichern</button>
-    <label class="secbtn rfile">Sicherung laden<input type="file" id="rBakIn" hidden></label></p>
+    <p class="rrow"><button type="button" class="primarybtn" id="rXlsx">Fertigmeldung als Excel</button></p>
+    <div class="rcard rpad rsync"><h3>Abgleich mit Kollegen</h3>${syncInfo()}
+    <p class="rrow"><button type="button" class="primarybtn" id="rBak">Stand teilen</button><label class="secbtn rfile">Stand einlesen<input type="file" id="rBakIn" multiple hidden></label></p>
+    <p class="rhint">„Stand teilen“ schickt deine Einträge als Datei (Teams, WhatsApp, Mail, OneDrive). Die Kollegen tippen „Stand einlesen“ und wählen die Datei, auch mehrere auf einmal. Pro Feld gilt der neueste Eintrag, nichts wird doppelt. Die Datei ist zugleich die Sicherung.</p></div>
     <p class="rhint">${kwSel() ? 'Fertigmeldung für KW ' + kwSel() + ' – ' + h(kwObj().name) : 'Fertigmeldung für alle Kettenwerke'} (Auswahl oben „Kettenwerk / Abschnitt“). <label><input type="checkbox" id="rOnlyNok"> nur außer Toleranz anzeigen</label></p>
     <div class="rtw"><table id="rAt"><tr><th>Mast / Stp</th><th>Bauart</th><th>KW</th><th>FH [m] (Abw.)</th><th>b [cm] (Abw.)</th><th>SH [m] (Abw.)</th><th>Ausl. [cm] (Abw.)</th><th>Reg.</th><th>Bemerkung</th></tr>${tr.join('')}</table></div>`;
   q('#rOnlyNok').onchange = e => qa('#rAt tr[data-st]').forEach(t => t.hidden = e.target.checked && t.dataset.st !== 'nok');
   q('#rXlsx').onclick = exportXlsx;
-  q('#rBak').onclick = () => share(`OL-Regulierung_${B.meta.id}_Sicherung_${today()}.json`, new Blob([JSON.stringify({ baustelle: B.meta.id, ...S }, null, 1)], { type: 'application/json' }));
-  q('#rBakIn').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; f.text().then(t => { try { const o = JSON.parse(t);
-    if (o.baustelle && o.baustelle !== B.meta.id && !confirm(`Die Sicherung gehört zu „${o.baustelle}“, nicht zu „${B.meta.id}“. Trotzdem laden?`)) return;
-    S = norm(o); save(); head(); render(); alert('Sicherung geladen.'); } catch { alert('Datei ungültig.'); } }); };
+  q('#rBak').onclick = shareStand;
+  q('#rBakIn').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) readStand(fs); };
 }
+/* ---------- Abgleich ohne Server: Stand-Datei teilen / einlesen ---------- */
+function syncInfo() { const mine = Object.values(S.st || {}).filter(s => s[1] === (S.g.Name || '') && s[0] > (S.sent || '')).length;
+  const oth = Object.entries(S.sy || {}).sort((a, b) => b[1].localeCompare(a[1])).map(([n, t]) => `${h(n || '?')} (${dtT(t)})`);
+  return `${S.g.Name ? '' : '<p class="rnote">Bitte oben unter ⋯ „Prüfer / Trupp“ eintragen, damit die Kollegen sehen, wer was abgehakt hat.</p>'}
+    <p class="rhint">${mine ? `<b>${mine}</b> eigene Einträge noch nicht geteilt.` : 'Alle eigenen Einträge geteilt.'}${S.sent ? ' Zuletzt geteilt: ' + dtT(S.sent) + '.' : ''}<br>${oth.length ? 'Eingelesen von: ' + oth.join(', ') : 'Noch nichts von Kollegen eingelesen.'}</p>`; }
+async function shareStand() {
+  if (!S.g.Name) { const n = (prompt('Dein Name (Prüfer / Trupp) – erscheint bei den Kollegen an deinen Haken:') || '').trim(); if (!n) return;
+    S.g.Name = n; q('#rName').value = n; Object.values(S.st || {}).forEach(s => { if (!s[1]) s[1] = n; }); }
+  const t = nowIso(), nm = S.g.Name.replace(/[^\wäöüÄÖÜß-]+/g, '_');
+  const o = { format: 'olreg-stand', baustelle: B.meta.id, von: S.g.Name, erstellt: t, ...S };
+  await share(`OL-Stand_${B.meta.id}_${nm}_${t.slice(0, 16).replace(/[-:T]/g, '')}.json`, new Blob([JSON.stringify(o)], { type: 'application/json' }));
+  S.sent = t; save(); if (tab() === 'aus') renderAus(); }
+function setVal(p, v, t) { const [a, b, c] = p.split('|'), dst = S[a]; if (!dst || !b) return false;
+  if (c === undefined) { if (v != null) dst[b] = v; else delete dst[b]; }
+  else { const tg = dst[b] ||= {}; if (v == null) delete tg[c]; else tg[c] = v; if (a === 'm' && (!tg.ts || tg.ts < t)) tg.ts = t; } return true; }
+const valOf = p => { const [a, b, c] = p.split('|'), x = S[a]?.[b]; return (c === undefined ? x : x?.[c]) ?? null; };
+/* Zusammenführen: je Feld gewinnt der neuere Stempel; ein Stempel ohne Wert = Haken entfernt */
+function mergeStand(o) { let n = 0; const st = o.st || {};
+  for (const [p, s] of Object.entries(st)) { const l = S.st[p]; if (l && l[0] >= s[0]) continue;
+    const [a, b, c] = p.split('|'), src = o[a] || {}; if (!setVal(p, c === undefined ? src[b] : src[b]?.[c], s[0])) continue;
+    S.st[p] = s; syQueue(p); n++; }
+  Object.values(st).forEach(s => { const k = s[1] || '?'; if (k !== (S.g.Name || '') && (!S.sy[k] || S.sy[k] < s[0])) S.sy[k] = s[0]; });
+  return n; }
+async function readStand(fs) { let n = 0, f0 = 0; const von = [];
+  for (const f of fs) { let o; try { o = JSON.parse(await f.text()); } catch { f0++; continue; }
+    if (!o.m) { f0++; continue; }
+    if (o.baustelle && o.baustelle !== B.meta.id && !confirm(`„${f.name}“ gehört zu „${o.baustelle}“, nicht zu „${B.meta.id}“. Trotzdem einlesen?`)) continue;
+    if (!o.st) { if (confirm(`„${f.name}“ ist eine ältere Sicherung ohne Zeitstempel. Alle Messwerte dieses Geräts damit ERSETZEN?`)) { S = norm(o); n++; } continue; }
+    n += mergeStand(o); von.push(o.von || '?'); }
+  save(); head(); render();
+  alert(`${n} Einträge übernommen${von.length ? ' von ' + [...new Set(von)].join(', ') : ''}.${f0 ? ` ${f0} Datei(en) ungültig.` : ''}`); }
 
 /* Einstellungen */
 function renderCfg() { const c = cfg(), i = (k, l, u) => `<label class="rf">${l}<span class="rrow"><input type="number" data-cfg="${k}" value="${c[k]}"> ${u}</span></label>`;
@@ -312,10 +352,11 @@ function renderCfg() { const c = cfg(), i = (k, l, u) => `<label class="rf">${l}
     <div class="rcard rpad"><h3>Toleranzen</h3><div class="rgrid">${i('tolFH', 'FH ±', 'mm')}${i('tolSL', 'b-Maß ±', 'mm')}${i('tolSH', 'SH ±', 'mm')}${i('tolAus', 'Auslegerstellung ±', 'mm')}${i('tolRS', 'Radspanner-Gewicht ±', 'mm')}</div>
     <p class="rhint">Auslegerstellung ±50 mm nach ${ebsTag('02.05.33', 'Ebs 02.05.33')}. Übrige Toleranzen mit den Abnahmewerten abgleichen.</p></div>
     <div class="rcard rpad"><h3>Temperaturdehnung</h3><div class="rgrid">${i('alpha', 'α (×10⁻⁶ /K)', '')}${i('tm', 'Mittelstellung bei', '°C')}${i('rsMitte', 'Radspanner a bei Tm', 'mm')}${i('rsUe', 'Radspanner Übersetzung 1:', '')}</div></div>
+    <div class="rcard rpad" id="rSyC"></div>
     <div class="rcard rpad"><h3>Baustelle</h3><p class="rhint">${h(B.meta.name)} · erstellt ${h(B.meta.erstellt || '')}<br>Quellen: ${(B.meta.quellen || []).map(h).join(' · ')}</p>
     <div id="rKorr"></div>
     <p class="rrow"><button type="button" class="secbtn" id="rRst">Toleranzen auf Standard</button><button type="button" class="secbtn danger" id="rClr">Messwerte dieser Baustelle löschen</button><button type="button" class="secbtn danger" id="rDel">Baustelle vom Gerät entfernen</button></p></div>`;
-  renderKorr();
+  renderKorr(); renderSync();
   q('#rRst').onclick = () => { S.cfg = { ...DEF, ...(B.cfg || {}) }; save(); renderCfg(); };
   q('#rClr').onclick = () => { if (confirm('Alle Messwerte dieser Baustelle auf diesem Gerät löschen? Vorher „Sicherung speichern“!')) { S.m = {}; S.kw = {}; S.km = {}; save(); render(); } };
   q('#rDel').onclick = async () => { if (!confirm(`Baustelle „${B.meta.name}“ samt Messwerten von diesem Gerät entfernen?`)) return;
@@ -347,15 +388,15 @@ function cleanKorr() { let n = 0; stpList().forEach(({ m, s, key }) => { const r
 
 /* ---------- Eingaben ---------- */
 REG.addEventListener('input', e => { const t = e.target; if (!B) return;
-  if (t.dataset.km) { S.km[t.dataset.km] = t.value; save(); return; }
-  if (t.dataset.beok) { if (t.checked) S.be[t.dataset.beok] = new Date().toISOString(); else delete S.be[t.dataset.beok]; t.closest('tr').classList.toggle('rardone', t.checked); save(); return; }
-  if (t.dataset.arok) { if (t.checked) S.ar[t.dataset.arok] = new Date().toISOString(); else delete S.ar[t.dataset.arok]; t.closest('tr').classList.toggle('rardone', t.checked); save(); return; }
+  if (t.dataset.km) { S.km[t.dataset.km] = t.value; stamp('km|' + t.dataset.km); save(); return; }
+  if (t.dataset.beok) { if (t.checked) S.be[t.dataset.beok] = nowIso(); else delete S.be[t.dataset.beok]; stamp('be|' + t.dataset.beok); okCell(t, 'be|' + t.dataset.beok); save(); return; }
+  if (t.dataset.arok) { if (t.checked) S.ar[t.dataset.arok] = nowIso(); else delete S.ar[t.dataset.arok]; stamp('ar|' + t.dataset.arok); okCell(t, 'ar|' + t.dataset.arok); save(); return; }
   const st = t.closest('.rstp'); if (st && t.dataset.f === 'aus') { const r = S.m[st.dataset.key] ||= {}, v = num(t.value), sg = asSgn(auslSoll(Lof(st.dataset.key, r)));
-    r.aus = v == null ? '' : String(Math.round(v * 10) * sg); r.ts = new Date().toISOString(); save(); upd(st); return; }
+    r.aus = v == null ? '' : String(Math.round(v * 10) * sg); r.ts = nowIso(); stamp('m|' + st.dataset.key + '|aus'); save(); upd(st); return; }
   if (st && t.dataset.f) { const r = S.m[st.dataset.key] ||= {}, f = t.dataset.f, u = U[uKey(f)];
-    r[f] = t.type === 'checkbox' ? t.checked : (u && f !== 'L' && t.value.trim() !== '' && num(t.value) != null) ? String(Math.round(num(t.value) * u.k)) : t.value; r.ts = new Date().toISOString(); save(); upd(st); return; }
-  const kr = t.closest('[data-kwr]'); if (kr && t.dataset.k && /^ok/.test(t.dataset.k)) { (S.kw[kr.dataset.kwr] ||= {})[t.dataset.k] = t.checked; save(); return; }
-  if (kr && t.dataset.k && t.dataset.k !== 'fp') { const k = t.dataset.k, v = num(t.value); (S.kw[kr.dataset.kwr] ||= {})[k] = /^a/.test(k) && v != null ? String(Math.round(v * 1000)) : t.value; save(); return; }
+    r[f] = t.type === 'checkbox' ? t.checked : (u && f !== 'L' && t.value.trim() !== '' && num(t.value) != null) ? String(Math.round(num(t.value) * u.k)) : t.value; r.ts = nowIso(); stamp('m|' + st.dataset.key + '|' + f); save(); upd(st); return; }
+  const kr = t.closest('[data-kwr]'); if (kr && t.dataset.k && /^ok/.test(t.dataset.k)) { (S.kw[kr.dataset.kwr] ||= {})[t.dataset.k] = t.checked; stamp('kw|' + kr.dataset.kwr + '|' + t.dataset.k); save(); return; }
+  if (kr && t.dataset.k && t.dataset.k !== 'fp') { const k = t.dataset.k, v = num(t.value); (S.kw[kr.dataset.kwr] ||= {})[k] = /^a/.test(k) && v != null ? String(Math.round(v * 1000)) : t.value; stamp('kw|' + kr.dataset.kwr + '|' + k); save(); return; }
   if (t.id === 'rT' || t.id === 'rDate' || t.id === 'rName') { S.g[t.id.slice(1)] = t.value; save(); if (t.id === 'rT') { qa('.rstp').forEach(upd); qa('[data-asum]').forEach(x => { x.textContent = asumTxt(mast(x.dataset.asum)); }); if (tab() === 'kw') qa('[data-kwr]').forEach(kwRow); } return; }
   if (t.dataset.cfg) { S.cfg[t.dataset.cfg] = num(t.value) ?? DEF[t.dataset.cfg]; save(); }
 });
@@ -388,14 +429,14 @@ REG.addEventListener('click', e => { const lpb = e.target.closest('[data-lp]'); 
 
 /* ---------- Baustellen laden / importieren ---------- */
 const today = () => (S?.g?.Date || new Date().toISOString().slice(0, 10));
-function norm(o) { return { v: 6, cfg: { ...DEF, ...(B.cfg || {}), ...(o.cfg || {}) }, m: o.m || {}, kw: o.kw || {}, g: o.g || {}, km: o.km || {}, ar: o.ar || {}, be: o.be || {} }; }
+function norm(o) { return { v: 6, cfg: { ...DEF, ...(B.cfg || {}), ...(o.cfg || {}) }, m: o.m || {}, kw: o.kw || {}, g: o.g || {}, km: o.km || {}, ar: o.ar || {}, be: o.be || {}, st: o.st || {}, sy: o.sy || {}, sent: o.sent || '', q: o.q || {} }; }
 async function refreshList() { const ks = await DB.keys('baustellen'); list = [];
   for (const k of ks) { const b = await DB.get('baustellen', k); list.push({ id: k, name: b?.meta?.name || k }); } }
-async function loadBs(id) { B = await DB.get('baustellen', id); if (!B) return; S = norm(await DB.get('mess', id) || {}); try { localStorage.setItem(LAST, id); } catch {} head(); render(); }
+async function loadBs(id) { B = await DB.get('baustellen', id); if (!B) return; S = norm(await DB.get('mess', id) || {}); syConnect(); try { localStorage.setItem(LAST, id); } catch {} head(); render(); }
 async function importFile(f) {
   let o; try { o = JSON.parse(await f.text()); } catch { alert('Die Datei ist keine gültige Baustellen-Datei.'); return; }
   if (o.format !== 'olreg' || !o.meta?.id || !Array.isArray(o.maste)) {
-    if (o.m && B && confirm('Das ist eine Messwert-Sicherung. In die aktuelle Baustelle laden?')) { S = norm(o); save(); head(); render(); }
+    if (o.m && B) { await readStand([f]); }
     else alert('Die Datei ist keine Baustellen-Datei (*.olreg).'); return; }
   const old = await DB.get('baustellen', o.meta.id);
   if (old && !confirm(`Baustelle „${o.meta.name}“ ist schon vorhanden. Stammdaten ersetzen? Die Messwerte bleiben erhalten.`)) return;
@@ -441,6 +482,7 @@ function xlsx(sheets) {
     ['xl/_rels/workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
     ['xl/styles.xml', styles], ...sheets.map((s, i) => [`xl/worksheets/sheet${i + 1}.xml`, s.xml])];
   return zip(files); }
+const xWho = p => { const s = stOf(p); return s && s[1] ? ' – ' + s[1] : ''; };
 function exportXlsx() {
   const c = cfg(), k = kwObj(), all = rowsFor(), H = v => ({ v, s: 2 }), mm = v => v == null || v === '' ? '' : Math.round(num(v));
   const stCell = st => st === 'ok' ? { v: 'i.O.', s: 3 } : st === 'nok' ? { v: 'außer Toleranz', s: 4 } : { v: 'offen', s: 6 };
@@ -450,7 +492,7 @@ function exportXlsx() {
     [{ v: 'Datum', s: 1 }, S.g.Date || ''], [{ v: 'Temperatur', s: 1 }, S.g.T ? num(S.g.T) + ' °C' : ''], [{ v: 'Prüfer / Trupp', s: 1 }, S.g.Name || ''],
     [{ v: 'Toleranzen', s: 1 }, `FH ±${fmtU('fh', c.tolFH)} m · b-Maß ±${fmtU('sl', c.tolSL).replace(/^[+-]/, '')} cm · SH ±${fmtU('sh', c.tolSH)} m · Auslegerstellung ±${fmtU('aus', c.tolAus).replace(/^[+-]/, '')} cm · Radspanner ±${mA(c.tolRS)} m`], []];
   let ok = 0, nok = 0, op = 0, done = 0;
-  const hd = ['Mast', 'Stp', 'km', 'System Ebs', 'Bauart', 'Ausleger', 'KW', 'FH Soll [m]', 'FH Ist [m]', 'FH Abw [m]', 'b Soll [cm]', 'b Ist [cm]', 'b Abw [cm]', 'SH Soll [m]', 'SH Ist [m]', 'SH Abw [m]', 'L FP [m]', 'Ausl. Soll', 'Ausl. eingestellt', 'Status', 'reguliert', 'Bemerkung'].map(H);
+  const hd = ['Mast', 'Stp', 'km', 'System Ebs', 'Bauart', 'Ausleger', 'KW', 'FH Soll [m]', 'FH Ist [m]', 'FH Abw [m]', 'b Soll [cm]', 'b Ist [cm]', 'b Abw [cm]', 'SH Soll [m]', 'SH Ist [m]', 'SH Abw [m]', 'L FP [m]', 'Ausl. Soll', 'Ausl. eingestellt', 'Status', 'reguliert', 'Bemerkung', 'erfasst von'].map(H);
   const body = all.map(({ m, s, i, key }) => { const r = S.m[key] || {}, so = soll(key, m, s), L = Lof(key, r), as = auslSoll(L), st = stpStatus(key, m, s);
     if (st === 'ok') ok++; else if (st === 'nok') nok++; else op++; if (r.done) done++;
     const ab = (f, sol, tol) => { const x = ck(r, f, sol, tol); if (!x) return ''; if (x.hk) return { v: 'i.O.', s: 3 }; const m2 = U[f].d === 2;
@@ -458,7 +500,7 @@ function exportXlsx() {
     const vm = (f, v) => v == null || v === '' || isNaN(num(v)) ? '' : U[f].d === 2 ? { v: Math.round(num(v)) / 1000, s: 7 } : { v: Math.round(num(v) / U[f].k), s: 8 };
     return [m.id, stpLbl(s, i).slice(4), mastKm(m.id) ?? '', s.sys, s.bauart, s.ausleger, kwOf(key) ? Number(kwOf(key)) : '',
       vm('fh', so.fh), vm('fh', r.fh), ab('fh', so.fh, c.tolFH), vm('sl', so.sl), vm('sl', r.sl), ab('sl', so.sl, c.tolSL), vm('sh', so.sh), vm('sh', r.sh), ab('sh', so.sh, c.tolSH),
-      L != null ? Math.round(L) : '', as != null ? ausFmt(as, key, { mast: 1 }) : '', r.ok_aus ? { v: 'ja', s: 3 } : '', stCell(st), r.done ? 'ja' : '', r.note || '']; });
+      L != null ? Math.round(L) : '', as != null ? ausFmt(as, key, { mast: 1 }) : '', r.ok_aus ? { v: 'ja', s: 3 } : '', stCell(st), r.done ? 'ja' : '', r.note || '', whoT(lastOf('m|' + key + '|'))]; });
   const sum = [[{ v: 'Zusammenfassung', s: 5 }], [], [H('Stützpunkte'), all.length], [H('i.O.'), { v: ok, s: 3 }], [H('außer Toleranz'), { v: nok, s: 4 }], [H('offen'), { v: op, s: 6 }], [H('reguliert'), done], [],
     [{ v: 'Bestätigung', s: 1 }], ['Die Oberleitung im angegebenen Abschnitt wurde reguliert. Abweichungen außerhalb der Toleranz sind in der Tabelle gekennzeichnet.'], [], ['Ort, Datum:', '', '', 'Unterschrift:']];
   const rs = [[{ v: 'Radspanner (Ebs 08.02.21/31)', s: 5 }], [`Temperatur ${S.g.T ? num(S.g.T) + ' °C' : '–'} · Mittelstellung ${mA(c.rsMitte)} m bei ${c.tm} °C · Übersetzung 1:${c.rsUe}`], [],
@@ -470,14 +512,14 @@ function exportXlsx() {
     ['Mast', 'Typ', 'Blick von', 'vorne', 'hinten', 'links', 'rechts', 'Status', 'Hinweis'].map(H)];
   if (B.ausrichtung) B.maste.forEach(m => { const a = B.ausrichtung[m.id]; if (!a) return;
     if (k && !kwEnd(m.id) && !m.stp.some((s, i) => kwOf(m.id + '#' + i) === String(k.nr))) return;
-    ars.push([m.id, a.t, a.gl || '', ...(a.w || ['', '', '', '']), S.ar[m.id] ? { v: 'ausgerichtet', s: 3 } : { v: 'offen', s: 6 }, a.hw || '']); });
+    ars.push([m.id, a.t, a.gl || '', ...(a.w || ['', '', '', '']), S.ar[m.id] ? { v: 'ausgerichtet' + xWho('ar|' + m.id), s: 3 } : { v: 'offen', s: 6 }, a.hw || '']); });
   const bes = [[{ v: 'Bestücken – Montagehöhen [m]', s: 5 }], ['MF = von Mastfuß, SO = von Schienenoberkante'], [],
     ['Mast', 'Ausl. oben v. MF', 'Ausl. unten v. MF', 'Ausl. oben v. SO', 'Ausl. unten v. SO', 'Rsp v. MF', 'Rsp 2 v. MF', 'GFW v. MF', 'FA v. MF', 'FA 2 v. MF', 'MGA v. MF', 'Status'].map(H)];
   if (B.bestueckung) B.maste.forEach(m => { const a = B.bestueckung[m.id]; if (!a || (k && !mastVis(m, '', String(k.nr)))) return;
     const c2 = v => v == null ? '' : { v, s: 7 };
-    bes.push([m.id, ...a.ab.map(c2), c2(a.rsp[0]), c2(a.rsp[1]), c2(a.gfw), c2(a.fa[0]), c2(a.fa[1]), c2(a.mga), S.be[m.id] ? { v: 'bestückt', s: 3 } : { v: 'offen', s: 6 }]); });
+    bes.push([m.id, ...a.ab.map(c2), c2(a.rsp[0]), c2(a.rsp[1]), c2(a.gfw), c2(a.fa[0]), c2(a.fa[1]), c2(a.mga), S.be[m.id] ? { v: 'bestückt' + xWho('be|' + m.id), s: 3 } : { v: 'offen', s: 6 }]); });
   const blob = xlsx([
-    { name: 'Fertigmeldung', xml: sheetXml([...kopf, hd, ...body], [9, 5, 9, 10, 7, 28, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 16, 11, 14, 9, 30]) },
+    { name: 'Fertigmeldung', xml: sheetXml([...kopf, hd, ...body], [9, 5, 9, 10, 7, 28, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 16, 11, 14, 9, 30, 18]) },
     { name: 'Radspanner', xml: sheetXml(rs, [5, 30, 10, 11, 12, 11, 10, 30]) },
     ...(B.bestueckung ? [{ name: 'Bestücken', xml: sheetXml(bes, [10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 11]) }] : []),
     ...(B.ausrichtung ? [{ name: 'Ausrichtung', xml: sheetXml(ars, [10, 6, 18, 8, 8, 8, 8, 13, 34]) }] : []),
@@ -496,6 +538,74 @@ async function open() { REG.hidden = false; document.body.classList.add('regopen
   if (!REG.firstChild) { shell(); await refreshList(); let id = null; try { id = localStorage.getItem(LAST); } catch {}
     if (id && list.some(b => b.id === id)) await loadBs(id); else if (list[0]) await loadBs(list[0].id); else { head(); render(); } } }
 function close() { REG.hidden = true; document.body.classList.remove('regopen'); }
+/* ---------- Online-Abgleich: Firebase Realtime Database (REST + Stream), Zugang NUR auf dem Gerät (localStorage) ----------
+   Pfad /t/<Team-Code>/<Baustelle>/e/<Feld> = { v: Wert, t: Zeit, n: Name }. Regeln: nur /t/$code mit Code ≥ 20 Zeichen lesbar/schreibbar. */
+const SYK = 'ebs2.sync';
+const syCfg = () => { try { const c = JSON.parse(localStorage.getItem(SYK) || 'null'); return c?.url && c?.code ? c : null; } catch { return null; } };
+const enc = p => p.replace(/[_.#$\[\]\/%]/g, c => '_' + c.charCodeAt(0).toString(16));
+const dec = k => k.replace(/_([0-9a-f]{2})/g, (m, x) => String.fromCharCode(parseInt(x, 16)));
+let ES = null, syT = 0, syRT = 0, syBusy = false, syState = '', syLast = '';
+const syPend = new Set();
+const syBase = () => { const c = syCfg(); return c && B ? `${c.url.replace(/\/+$/, '')}/t/${encodeURIComponent(c.code)}/${enc(B.meta.id)}/e` : null; };
+function syQueue(p) { if (!syCfg() || !S) return; (S.q ||= {})[p] = 1; clearTimeout(syT); syT = setTimeout(syPush, 1200); }
+async function syPush() { const u = syBase(); if (!u || syBusy) return syShow(); const ks = Object.keys(S.q || {}); if (!ks.length) return syShow();
+  if (!navigator.onLine) { syState = 'offline'; return syShow(); }
+  syBusy = true; const body = {}, snap = {}; ks.forEach(p => { const s = S.st[p]; if (s) { body[enc(p)] = { v: valOf(p), t: s[0], n: s[1] || '' }; snap[p] = s[0]; } });
+  try { const r = await fetch(u + '.json', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? 'kein Zugriff – Regeln/Team-Code prüfen' : 'HTTP ' + r.status);
+    ks.forEach(p => { if (!S.st[p] || S.st[p][0] === snap[p]) delete S.q[p]; }); save(); syState = 'ok'; syLast = nowIso(); }
+  catch (e) { syState = navigator.onLine ? 'Fehler: ' + (e.message || e) : 'offline'; }
+  finally { syBusy = false; syShow(); } }
+function syApply(p, x) { const l = S.st[p]; if (!x?.t || (l && l[0] >= x.t)) return false; if (!setVal(p, x.v, x.t)) return false;
+  S.st[p] = [x.t, x.n || '']; const k = x.n || '?'; if (k !== (S.g.Name || '') && (!S.sy[k] || S.sy[k] < x.t)) S.sy[k] = x.t; return true; }
+function syConnect() { if (ES) { ES.close(); ES = null; } const u = syBase(); if (!u) { syState = ''; return syShow(); }
+  syState = 'verbinde …'; syShow();
+  ES = new EventSource(u + '.json');
+  const on = e => { let d; try { d = JSON.parse(e.data); } catch { return; } if (!d) return; const ch = [];
+    const take = (k, x) => { const p = dec(k); if (syApply(p, x)) ch.push(p); };
+    const parts = (d.path || '/').split('/').filter(Boolean);
+    if (!parts.length) Object.entries(d.data || {}).forEach(([k, x]) => take(k, x)); else if (parts.length === 1) take(parts[0], d.data);
+    syState = 'ok'; syLast = nowIso(); if (ch.length) { save(); syRefresh(ch); } syShow(); syPush(); };
+  ES.addEventListener('put', on); ES.addEventListener('patch', on);
+  ES.addEventListener('cancel', () => { syState = 'kein Zugriff – Regeln/Team-Code prüfen'; syShow(); });
+  ES.onerror = () => { syState = navigator.onLine ? 'verbinde …' : 'offline'; syShow(); }; }
+/* Anzeige nach Änderungen von Kollegen: nicht während der Eingabe, offene Karten + Scrollposition bleiben */
+function syRefresh(ps) { ps.forEach(p => syPend.add(p)); clearTimeout(syRT); syRT = setTimeout(syDo, 300); }
+function syDo() { if (!B || !syPend.size) return; const a = document.activeElement;
+  if (a && REG.contains(a) && (a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && a.type !== 'checkbox' && a.type !== 'file'))) { a.addEventListener('blur', () => syRefresh([]), { once: true }); return; }
+  syPend.clear(); if (REG.hidden || tab() === 'cfg') return;
+  const sc = [document.scrollingElement, REG, q('.rmain')].filter(Boolean).map(e => [e, e.scrollTop]), op = qa('details[open]').map(d => d.dataset.m);
+  render(); op.forEach(id => { const d = q(`details[data-m="${CSS.escape(id)}"]`); if (d) { d.open = true; fillBody(d); } }); sc.forEach(([e, t]) => { e.scrollTop = t; }); }
+function syShow() { const d = q('#rSyD'); if (!d) return; const c = syCfg(), n = Object.keys(S?.q || {}).length;
+  d.hidden = !c; d.className = 'rsyd ' + (syState === 'ok' ? 'on' : /Fehler|Zugriff/.test(syState) ? 'err' : 'off');
+  d.textContent = (syState === 'ok' ? '●' : '○') + (n ? ' ' + n : ''); d.title = 'Online-Abgleich: ' + (syState || 'aus') + (n ? `, ${n} warten` : '');
+  const s = q('#rSyS'); if (s) s.textContent = (c ? (syState || 'aus') : 'aus') + (n ? ` · ${n} Einträge warten` : '') + (syLast && syState === 'ok' ? ' · ' + dtT(syLast) : ''); }
+function syCode() { const a = crypto.getRandomValues(new Uint8Array(16)), z = 'abcdefghijkmnpqrstuvwxyz23456789'; return [...a].map(b => z[b & 31]).join('') + z[a[0] >> 5]; }
+function syParse(t) { const m = String(t || '').match(/olsync=([A-Za-z0-9+/=_-]+)/); if (!m) return null; try { const o = JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g, '+').replace(/_/g, '/'))))); return o.url && o.code ? o : null; } catch { return null; } }
+function renderSync() { const el = q('#rSyC'); if (!el) return; const c = syCfg() || JSON.parse(localStorage.getItem(SYK + '.e') || '{}');
+  el.innerHTML = `<h3>Online-Abgleich</h3><p class="rhint">Status: <b id="rSyS"></b></p>
+    <label class="rf">Zugang einfügen (vom Kollegen erhalten)<span class="rrow"><input id="rSyP" placeholder="Text mit olsync=… hier einfügen"><button type="button" class="secbtn" id="rSyPb">Übernehmen</button></span></label>
+    <label class="rf">Datenbank-Adresse<input id="rSyU" value="${h(c.url || '')}" placeholder="https://….europe-west1.firebasedatabase.app" autocomplete="off"></label>
+    <label class="rf">Team-Code<span class="rrow"><input id="rSyK" value="${h(c.code || '')}" autocomplete="off"><button type="button" class="secbtn" id="rSyN">Neu</button></span></label>
+    <p class="rrow"><button type="button" class="primarybtn" id="rSyOn">${syCfg() ? 'Neu verbinden' : 'Verbinden'}</button>${syCfg() ? '<button type="button" class="secbtn" id="rSyL">Zugang an Kollegen</button><button type="button" class="secbtn danger" id="rSyX">Trennen</button>' : ''}</p>
+    <p class="rhint">Alle mit gleicher Adresse und gleichem Team-Code sehen sofort, was die anderen eintragen. Ohne Netz wird gesammelt und später gesendet (○ mit Zahl oben = wartende Einträge). Der Zugang wird nur auf diesem Gerät gespeichert, nicht in der App und nicht im Internet veröffentlicht. „Stand teilen“ bleibt als Weg ohne Netz.</p>`;
+  q('#rSyN').onclick = () => { if (!q('#rSyK').value || confirm('Neuen Team-Code erzeugen? Alle Kollegen brauchen dann den neuen Zugang.')) q('#rSyK').value = syCode(); };
+  q('#rSyPb').onclick = () => { const o = syParse(q('#rSyP').value); if (!o) return alert('Kein gültiger Zugang (olsync=…) gefunden.'); q('#rSyU').value = o.url; q('#rSyK').value = o.code; q('#rSyOn').click(); };
+  q('#rSyOn').onclick = () => { const url = q('#rSyU').value.trim().replace(/\/+$/, ''), code = q('#rSyK').value.trim();
+    if (!/^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.(firebasedatabase\.app|firebaseio\.com)$/i.test(url)) return alert('Datenbank-Adresse prüfen (https://….firebasedatabase.app).');
+    if (code.length < 20) return alert('Team-Code zu kurz (mind. 20 Zeichen) – „Neu“ tippen.');
+    if (!S.g.Name) { const n = (prompt('Dein Name (Prüfer / Trupp) – erscheint bei den Kollegen an deinen Haken:') || '').trim(); if (!n) return; S.g.Name = n; q('#rName').value = n; Object.values(S.st || {}).forEach(s => { if (!s[1]) s[1] = n; }); }
+    try { localStorage.setItem(SYK, JSON.stringify({ url, code })); } catch { return alert('Speichern auf dem Gerät nicht möglich.'); }
+    Object.keys(S.st || {}).forEach(p => { S.q[p] = 1; }); save(); syConnect(); syPush(); renderSync(); };
+  if (syCfg()) { q('#rSyL').onclick = async () => { const c2 = syCfg(), tk = btoa(unescape(encodeURIComponent(JSON.stringify(c2)))).replace(/\+/g, '-').replace(/\//g, '_');
+      const txt = `Zugang Online-Abgleich OL-Regulierung (nur intern weitergeben):\nEBS-Suche → Regul. → ⚙ → „Zugang einfügen“ → diesen ganzen Text einfügen → Übernehmen\nolsync=${tk}`;
+      try { if (navigator.share) { await navigator.share({ text: txt }); return; } } catch (e) { if (e.name === 'AbortError') return; }
+      try { await navigator.clipboard.writeText(txt); alert('Zugang kopiert – an die Kollegen schicken (Teams/WhatsApp).'); } catch { prompt('Zugang kopieren:', txt); } };
+    q('#rSyX').onclick = () => { if (!confirm('Online-Abgleich auf diesem Gerät trennen? Die Daten auf dem Gerät bleiben.')) return; try { localStorage.setItem(SYK + '.e', localStorage.getItem(SYK)); localStorage.removeItem(SYK); } catch {} syConnect(); renderSync(); }; }
+  syShow(); }
+window.addEventListener('online', () => { syPush(); if (!ES || ES.readyState === 2) syConnect(); });
+setInterval(() => { if (B && syCfg()) syPush(); }, 30000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && B && syCfg()) { if (!ES || ES.readyState === 2) syConnect(); syPush(); } });
 document.getElementById('regBtn').onclick = open;
 window.OLREG = { open, close };
 })();
