@@ -1453,6 +1453,15 @@ async function boot() {
   checkUpdate();
 }
 $('dataBtn').onclick = () => showSetup();
+
+/* Freigabe-Link zum OneDrive-Ordner (PDF, ebs-daten.bin, *.olreg) – nur auf diesem Gerät gespeichert, nie im Code */
+const LINK_KEY = 'ebs2.shareLink';
+window.EBS_LINK = () => { try { const v = localStorage.getItem(LINK_KEY) || ''; return /^https:\/\//i.test(v) ? v : ''; } catch { return ''; } };
+function showLink() { const v = window.EBS_LINK(), a = $('shareOpen'); a.hidden = !v; if (v) a.href = v; }
+$('shareLink').value = window.EBS_LINK(); showLink();
+$('shareLink').addEventListener('input', e => { const v = e.target.value.trim();
+  try { if (/^https:\/\//i.test(v)) localStorage.setItem(LINK_KEY, v); else if (!v) localStorage.removeItem(LINK_KEY); } catch {}
+  showLink(); });
 $('setupClose').onclick = () => { $('setup').hidden = true; };
 $('fromPc').onclick = loadFromPc;
 $('pick').onchange = e => importPicked(e.target.files);

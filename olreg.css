@@ -101,3 +101,5 @@ body.regopen { overflow: hidden; }
 #reg table.rart tr.rardone td { background: color-mix(in srgb, #1a7f37 14%, transparent); }
 #reg table.rbet td { font-size: 14px; line-height: 1.25; }
 #reg table.rbet .rgfw { display: block; font-size: 11px; color: var(--muted); }
+#reg a.iconbtn.rfile { text-decoration: none; color: var(--text); }
+#reg a.iconbtn[hidden] { display: none; }

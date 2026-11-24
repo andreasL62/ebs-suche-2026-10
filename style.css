@@ -275,3 +275,7 @@ mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padd
   .numrow .iconbtn { padding: 0 9px; }
   .iconbtn .lg { display: none; } .iconbtn .sm { display: inline; }
 }
+.linkrow { display: flex; gap: 8px; margin: 4px 0 6px; }
+.linkrow input { flex: 1; min-width: 0; font-size: 16px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+.linkrow .secbtn { flex: none; display: inline-flex; align-items: center; text-decoration: none; color: var(--text); padding: 0 12px; border-radius: 10px; }
+.small { font-size: 12.5px; }

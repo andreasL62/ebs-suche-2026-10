@@ -137,6 +137,7 @@ function shell() {
         <label>Datum<input id="rDate" type="date"></label>
         <label>Prüfer / Trupp<input id="rName"></label>
         <label class="iconbtn rfile" title="Baustelle importieren (.olreg)">Import<input type="file" id="rImp" hidden></label>
+        <a id="rFolder" class="iconbtn rfile" target="_blank" rel="noopener" title="OneDrive-Ordner mit den Baustellen-Dateien öffnen" hidden>Ordner</a>
       </div>
     </div>
     <select id="rKw" class="rkwsel" aria-label="Kettenwerk / Abschnitt"></select>
@@ -149,7 +150,7 @@ function shell() {
   </div>
   <div class="rmain"><section id="r-stp"></section><section id="r-kw" hidden></section><section id="r-ar" hidden></section><section id="r-be" hidden></section><section id="r-aus" hidden></section><section id="r-cfg" hidden></section></div>`;
   q('#rClose').onclick = close;
-  q('#rMoreB').onclick = () => { const p = q('#rMore'); p.hidden = !p.hidden; q('#rMoreB').setAttribute('aria-expanded', !p.hidden); };
+  q('#rMoreB').onclick = () => { const lk = window.EBS_LINK?.() || '', fo = q('#rFolder'); fo.hidden = !lk; if (lk) fo.href = lk; const p = q('#rMore'); p.hidden = !p.hidden; q('#rMoreB').setAttribute('aria-expanded', !p.hidden); };
   q('#rImp').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) importFile(f); };
   q('#rBs').onchange = e => e.target.value === '' ? null : loadBs(e.target.value);
   q('#rTabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; qa('#rTabs button').forEach(x => x.classList.toggle('on', x === b)); render(); };
