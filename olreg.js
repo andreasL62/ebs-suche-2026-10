@@ -580,7 +580,7 @@ function syShow() { const d = q('#rSyD'); if (!d) return; const c = syCfg(), n =
   d.hidden = !c; d.className = 'rsyd ' + (syState === 'ok' ? 'on' : /Fehler|Zugriff/.test(syState) ? 'err' : 'off');
   d.textContent = (syState === 'ok' ? '●' : '○') + (n ? ' ' + n : ''); d.title = 'Online-Abgleich: ' + (syState || 'aus') + (n ? `, ${n} warten` : '');
   const s = q('#rSyS'); if (s) s.textContent = (c ? (syState || 'aus') : 'aus') + (n ? ` · ${n} Einträge warten` : '') + (syLast && syState === 'ok' ? ' · ' + dtT(syLast) : ''); }
-function syCode() { const a = crypto.getRandomValues(new Uint8Array(16)), z = 'abcdefghijkmnpqrstuvwxyz23456789'; return [...a].map(b => z[b & 31]).join('') + z[a[0] >> 5]; }
+function syCode() { const a = crypto.getRandomValues(new Uint8Array(24)), z = 'abcdefghijkmnpqrstuvwxyz23456789'; return [...a].map(b => z[b & 31]).join('') + z[a[0] >> 5]; }
 function syParse(t) { const m = String(t || '').match(/olsync=([A-Za-z0-9+/=_-]+)/); if (!m) return null; try { const o = JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g, '+').replace(/_/g, '/'))))); return o.url && o.code ? o : null; } catch { return null; } }
 function renderSync() { const el = q('#rSyC'); if (!el) return; const c = syCfg() || JSON.parse(localStorage.getItem(SYK + '.e') || '{}');
   el.innerHTML = `<h3>Online-Abgleich</h3><p class="rhint">Status: <b id="rSyS"></b></p>
