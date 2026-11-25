@@ -193,7 +193,7 @@ function renderAr() {
     if (qq && !(m.id + ' ' + (m.bem || '')).toLowerCase().includes(qq)) return;
     if (ks && !kwEnd(m.id) && !m.stp.some((s, i) => kwOf(m.id + '#' + i) === ks)) return;
     const w = a.w ? a.w.map(v => `<td>${v}</td>`).join('') : '<td colspan="4" class="rhint">offen</td>', ok = !!S.ar[m.id];
-    o += `<tr class="${ok ? 'rardone' : ''}"><td class="rarm"><b>${h(m.id)}</b>${a.gl ? `<span>${h(a.gl)}</span>` : ''}${a.hw ? `<span class="rkortxt">${h(a.hw)}</span>` : ''}</td><td>${a.t}</td>${w}<td><input type="checkbox" data-arok="${h(m.id)}" ${ok ? 'checked' : ''} aria-label="ausgerichtet">${whoSp('ar|' + m.id, ok)}</td></tr>`; });
+    o += `<tr class="${ok ? 'rardone' : ''}"><td class="rarm">${(B.lageplan?.[m.id] || B.querprofil?.[m.id]) ? `<button type="button" class="rlpb" data-lp="${h(m.id)}" title="Lageplan / Querprofil">${h(m.id)}</button>` : `<b>${h(m.id)}</b>`}${a.gl ? `<span>${h(a.gl)}</span>` : ''}${a.hw ? `<span class="rkortxt">${h(a.hw)}</span>` : ''}</td><td>${a.t}</td>${w}<td><input type="checkbox" data-arok="${h(m.id)}" ${ok ? 'checked' : ''} aria-label="ausgerichtet">${whoSp('ar|' + m.id, ok)}</td></tr>`; });
   q('#r-ar').innerHTML = `<p class="rhint rpad">Eckstiel-Abstand zur Lotrechten in mm/m (Waage 1,0 m), Blick vom Gleis zum Mast. FM = Flachmast, WM = Winkelmast.<br>Prüfen: ${ebsTag('02.03.13', 'Ebs 02.03.13 Bl. 1')} ${ebsTag('02.03.14', 'Ebs 02.03.14 Bl. 1')}</p>
     <table class="rart"><thead><tr><th>Mast</th><th></th><th>vorne</th><th>hinten</th><th>links</th><th>rechts</th><th>✓</th></tr></thead><tbody>${o || '<tr><td colspan="7" class="rhint">keine Maste</td></tr>'}</tbody></table>`;
 }
@@ -208,11 +208,11 @@ function renderBe() {
   const two = (a, b) => [a, b].filter(v => v != null).map(mtF).join('<br>');
   let o = '';
   B.maste.forEach(m => { const a = A[m.id]; if (!a || !mastVis(m, qq, ks)) return; const ok = !!S.be[m.id];
-    const lp = B.lageplan?.[m.id];
+    const lp = B.lageplan?.[m.id] || B.querprofil?.[m.id];
     o += `<tr class="${ok ? 'rardone' : ''}"><td class="rarm">${lp ? `<button type="button" class="rlpb" data-lp="${h(m.id)}" title="Lageplan-Ausschnitt">${h(m.id)}</button>` : `<b>${h(m.id)}</b>`}</td><td>${two(a.ab[0], a.ab[1])}</td><td>${two(a.ab[2], a.ab[3])}</td>
       <td>${a.rsp.map(mtF).join('<br>')}${a.gfw != null ? `<span class="rgfw">GFW ${mtF(a.gfw)}</span>` : ''}</td><td>${a.fa.map(mtF).join('<br>')}</td><td>${mtF(a.mga)}</td>
       <td><input type="checkbox" data-beok="${h(m.id)}" ${ok ? 'checked' : ''} aria-label="bestückt">${whoSp('be|' + m.id, ok)}</td></tr>`; });
-  q('#r-be').innerHTML = `<p class="rhint rpad">Montagehöhen in m. MF = von Mastfuß, SO = von Schienenoberkante. Ausleger: oben / unten. GFW = Radspanner v. MF-GFW.${B.lageplan ? ' Unterstrichene Mastnummer antippen = Lageplan-Ausschnitt.' : ''}</p>
+  q('#r-be').innerHTML = `<p class="rhint rpad">Montagehöhen in m. MF = von Mastfuß, SO = von Schienenoberkante. Ausleger: oben / unten. GFW = Radspanner v. MF-GFW.${B.lageplan || B.querprofil ? ' Unterstrichene Mastnummer antippen = Lageplan' + (B.querprofil ? ', Bild antippen = Querprofil.' : '-Ausschnitt.') : ''}</p>
     <table class="rart rbet"><thead><tr><th>Mast</th><th>Ausl.<br>MF</th><th>Ausl.<br>SO</th><th>Rsp<br>MF</th><th>FA<br>MF</th><th>MGA<br>MF</th><th>✓</th></tr></thead><tbody>${o || '<tr><td colspan="7" class="rhint">keine Maste</td></tr>'}</tbody></table>`;
 }
 /* Stützpunkte */
@@ -226,7 +226,7 @@ function renderStp() {
     const sts = m.stp.map((s, i) => (!ks || kwOf(m.id + '#' + i) === ks) ? stpStatus(m.id + '#' + i, m, s) : null).filter(Boolean);
     const st = sts.includes('nok') ? 'nok' : sts.length && sts.every(x => x === 'ok') ? 'ok' : 'open';
     if (fl && fl !== st) return;
-    o += `<details class="rcard" data-m="${m.id}"><summary><span class="rmid">${m.id}</span>${endT ? `<span class="rtag nok">${endT}</span>` : ''}
+    o += `<details class="rcard" data-m="${m.id}"><summary><span class="rmid">${(B.lageplan?.[m.id] || B.querprofil?.[m.id]) ? `<button type="button" class="rlpb" data-lp="${h(m.id)}" title="Lageplan / Querprofil">${h(m.id)}</button>` : `${h(m.id)}`}</span>${endT ? `<span class="rtag nok">${endT}</span>` : ''}
       ${m.stp.map(s => ebsTag(s.sys.startsWith('30.') ? s.sys : '', s.bauart)).join('')}
       ${fp[m.id] ? `<span class="rtag nok">× ${h(fp[m.id])}</span>` : ''}<span class="rtag open" data-bsum="${m.id}">${bsumTxt(m)}</span>
       <span class="rtag" data-asum="${m.id}">${asumTxt(m)}</span><span class="rtag ${st}">${st === 'ok' ? 'i.O.' : st === 'nok' ? 'außer Tol.' : 'offen'}</span></summary><div class="rbody"></div></details>`;
@@ -402,20 +402,28 @@ REG.addEventListener('input', e => { const t = e.target; if (!B) return;
 });
 REG.addEventListener('change', e => { const kr = e.target.closest?.('[data-kwr]'); if (kr && e.target.dataset.k && e.target.dataset.k !== 'fp') kwRow(kr); });
 /* Lageplan-Ausschnitt (Bild aus der .olreg, Schlüssel lageplan[Mast] = {bl, img base64-JPEG}) */
-function showLp(id) {
-  const lp = B.lageplan?.[id]; if (!lp) return;
+function showLp(id, view) {
+  const lp = B.lageplan?.[id], qp = B.querprofil?.[id]; if (!lp && !qp) return;
+  view = view || (lp ? 'lp' : 'qp');
   let w = document.getElementById('rLp');
   if (!w) { w = document.createElement('div'); w.id = 'rLp'; w.setAttribute('role', 'dialog');
-    w.innerHTML = `<div class="rlph"><b id="rLpT"></b><span class="rhint" id="rLpS"></span><button type="button" class="iconbtn" id="rLpZ">Ganz</button><button type="button" class="iconbtn" id="rLpX" aria-label="Schließen">✕</button></div><div class="rlpw" id="rLpW"><img id="rLpI" alt="Lageplan-Ausschnitt"></div>`;
+    w.innerHTML = `<div class="rlph"><b id="rLpT"></b><span class="rhint" id="rLpS"></span><button type="button" class="iconbtn" id="rLpV"></button><button type="button" class="iconbtn" id="rLpZ">Ganz</button><button type="button" class="iconbtn" id="rLpX" aria-label="Schließen">✕</button></div><div class="rlpw" id="rLpW"><img id="rLpI" alt="Ausschnitt"></div>`;
     REG.appendChild(w);
     const W = w.querySelector('#rLpW'), I = w.querySelector('#rLpI');
     const mid = () => setTimeout(() => { W.scrollLeft = (W.scrollWidth - W.clientWidth) / 2; W.scrollTop = (W.scrollHeight - W.clientHeight) / 2; }, 30);
     const zoom = () => { const fit = I.classList.toggle('rfit'); w.querySelector('#rLpZ').textContent = fit ? 'Detail' : 'Ganz'; mid(); };
-    w.querySelector('#rLpZ').onclick = zoom; I.onclick = zoom; I.onload = mid;
+    const other = () => showLp(w.dataset.id, w.dataset.v === 'lp' ? 'qp' : 'lp');
+    w.querySelector('#rLpZ').onclick = zoom; w.querySelector('#rLpV').onclick = other;
+    I.onclick = () => { const id2 = w.dataset.id, o = w.dataset.v === 'lp' ? B.querprofil?.[id2] : B.lageplan?.[id2]; if (o) other(); else zoom(); };
+    I.onload = mid;
     w.querySelector('#rLpX').onclick = () => { w.hidden = true; }; }
-  const I = w.querySelector('#rLpI'); I.classList.remove('rfit'); w.querySelector('#rLpZ').textContent = 'Ganz';
-  I.src = 'data:image/jpeg;base64,' + lp.img;
-  w.querySelector('#rLpT').textContent = id; w.querySelector('#rLpS').textContent = `Lageplan Bl. ${lp.bl}`;
+  const o = view === 'qp' ? qp : lp, alt = view === 'qp' ? lp : qp;
+  w.dataset.id = id; w.dataset.v = view;
+  const I = w.querySelector('#rLpI'), fit = view === 'qp'; I.classList.toggle('rfit', fit); w.querySelector('#rLpZ').textContent = fit ? 'Detail' : 'Ganz';
+  I.src = 'data:image/jpeg;base64,' + (o.img || B.qpBilder?.[o.ref] || '');
+  const V = w.querySelector('#rLpV'); V.hidden = !alt; V.textContent = view === 'qp' ? 'Lageplan' : 'Querprofil';
+  w.querySelector('#rLpT').textContent = id;
+  w.querySelector('#rLpS').textContent = view === 'qp' ? `Querprofil${o.bl ? ' Bl. ' + o.bl : ''}${alt ? ' · Bild antippen = Lageplan' : ''}` : `Lageplan Bl. ${o.bl}${alt ? ' · Bild antippen = Querprofil' : ''}`;
   w.hidden = false; I.onload?.();
 }
 REG.addEventListener('click', e => { const lpb = e.target.closest('[data-lp]'); if (lpb) { e.preventDefault(); showLp(lpb.dataset.lp); return; }
