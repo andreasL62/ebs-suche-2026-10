@@ -316,8 +316,12 @@ function renderAus() {
 /* ---------- Abgleich ohne Server: Stand-Datei teilen / einlesen ---------- */
 function syncInfo() { const mine = Object.values(S.st || {}).filter(s => s[1] === (S.g.Name || '') && s[0] > (S.sent || '')).length;
   const oth = Object.entries(S.sy || {}).sort((a, b) => b[1].localeCompare(a[1])).map(([n, t]) => `${h(n || '?')} (${dtT(t)})`);
+  const pr = {}; for (const s of Object.values(S.st || {})) { const n = s[1] || '?', x = pr[n] ||= { c: 0, t: '' }; x.c++; if (s[0] > x.t) x.t = s[0]; }
+  for (const [n, t] of Object.entries(S.sy || {})) { const x = pr[n || '?'] ||= { c: 0, t: '' }; if (t > x.t) x.t = t; }
+  const prL = Object.entries(pr).sort((a, b) => b[1].t.localeCompare(a[1].t)).map(([n, x]) => `<tr><td>${h(n)}${n === S.g.Name ? ' (du)' : ''}</td><td>${x.c}</td><td>${x.t ? dtT(x.t) : ''}</td></tr>`).join('');
+  const prT = prL ? `<div class="rtw"><table class="rprl"><tr><th>Prüfer / Trupp</th><th>Einträge</th><th>zuletzt</th></tr>${prL}</table></div>` : '';
   return `${S.g.Name ? '' : '<p class="rnote">Bitte oben unter ⋯ „Prüfer / Trupp“ eintragen, damit die Kollegen sehen, wer was abgehakt hat.</p>'}
-    <p class="rhint">${mine ? `<b>${mine}</b> eigene Einträge noch nicht geteilt.` : 'Alle eigenen Einträge geteilt.'}${S.sent ? ' Zuletzt geteilt: ' + dtT(S.sent) + '.' : ''}<br>${oth.length ? 'Eingelesen von: ' + oth.join(', ') : 'Noch nichts von Kollegen eingelesen.'}</p>`; }
+    <p class="rhint">${mine ? `<b>${mine}</b> eigene Einträge noch nicht geteilt.` : 'Alle eigenen Einträge geteilt.'}${S.sent ? ' Zuletzt geteilt: ' + dtT(S.sent) + '.' : ''}<br>${oth.length ? 'Eingelesen von: ' + oth.join(', ') : 'Noch nichts von Kollegen eingelesen.'}</p>${prT}`; }
 async function shareStand() {
   if (!S.g.Name) { const n = (prompt('Dein Name (Prüfer / Trupp) – erscheint bei den Kollegen an deinen Haken:') || '').trim(); if (!n) return;
     S.g.Name = n; q('#rName').value = n; Object.values(S.st || {}).forEach(s => { if (!s[1]) s[1] = n; }); }

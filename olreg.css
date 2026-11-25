@@ -117,3 +117,5 @@ body.regopen { overflow: hidden; }
 #reg .rsync h3 { margin-top: 0; }
 #reg .rsyd { font-size: 13px; font-weight: 700; padding: 0 4px; white-space: nowrap; }
 #reg .rsyd.on { color: #1a7f37; } #reg .rsyd.off { color: var(--muted); } #reg .rsyd.err { color: #c62828; }
+.rprl { margin-top: 6px; font-size: 13px; }
+.rprl td:nth-child(2) { text-align: right; }
