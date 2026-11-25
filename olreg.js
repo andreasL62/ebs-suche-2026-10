@@ -303,14 +303,18 @@ function renderAus() {
     return `<tr data-st="${st}"><td>${m.id} ${stpLbl(s, i)}</td><td>${s.bauart}</td><td>${kwOf(key) ? 'KW ' + kwOf(key) : ''}</td>${cell('fh', so.fh, c.tolFH)}${cell('sl', so.sl, c.tolSL)}${cell('sh', so.sh, c.tolSH)}${(() => { const x = ck(r, 'aus', as, c.tolAus); return x?.hk ? '<td class="rd ok">✓ i.O.</td>' : x ? `<td class="rd ${x.ok ? 'ok' : 'nok'}">${ausFmt(num(r.aus), key)} (Soll ${ausFmt(as, key)})</td>` : '<td class="rhint">–</td>'; })()}<td>${r.done ? '✓' : ''}</td><td>${h(r.note || '')}</td></tr>`; });
   q('#r-aus').innerHTML = `<div class="rstats"><div><b>${all.length}</b>Stützpunkte</div><div><b class="ok">${ok}</b>i.O.</div><div><b class="nok">${nok}</b>außer Toleranz</div><div><b>${op}</b>offen</div><div><b>${done}</b>reguliert</div></div>
     <p class="rrow"><button type="button" class="primarybtn" id="rXlsx">Fertigmeldung als Excel</button></p>
-    <div class="rcard rpad rsync"><h3>Abgleich mit Kollegen</h3>${syncInfo()}
-    <p class="rrow"><button type="button" class="primarybtn" id="rBak">Stand teilen</button><label class="secbtn rfile">Stand einlesen<input type="file" id="rBakIn" multiple hidden></label></p>
-    <p class="rhint">„Stand teilen“ schickt deine Einträge als Datei (Teams, WhatsApp, Mail, OneDrive). Die Kollegen tippen „Stand einlesen“ und wählen die Datei, auch mehrere auf einmal. Pro Feld gilt der neueste Eintrag, nichts wird doppelt. Die Datei ist zugleich die Sicherung.</p></div>
+    <div class="rcard rpad rsync"><h3>Abgleich mit Kollegen</h3>${syCfg()
+      ? '<p class="rsyok">● Automatischer Abgleich ist an: Deine Einträge gehen sofort an alle Kollegen mit gleichem Zugang, deren Einträge kommen sofort zu dir. Status: <b id="rSyS2"></b></p>'
+      : '<p class="rhint"><b>Automatisch abgleichen:</b> Einmal den Online-Abgleich verbinden, dann sehen alle sofort, was die anderen eintragen. Dateien teilen ist dann nicht mehr nötig.</p><p class="rrow"><button type="button" class="primarybtn" id="rSyGo">Automatischen Abgleich einrichten</button></p>'}${syncInfo()}
+    <p class="rrow"><button type="button" class="secbtn" id="rBak">Stand teilen</button><label class="secbtn rfile">Stand einlesen<input type="file" id="rBakIn" multiple hidden></label></p>
+    <p class="rhint">${syCfg() ? '„Stand teilen“ brauchst du nur noch ohne Netz oder als Sicherung.' : '„Stand teilen“ schickt deine Einträge als Datei (Teams, WhatsApp, Mail, OneDrive). Die Kollegen tippen „Stand einlesen“ und wählen die Datei, auch mehrere auf einmal.'} Pro Feld gilt der neueste Eintrag, nichts wird doppelt.</p></div>
     <p class="rhint">${kwSel() ? 'Fertigmeldung für KW ' + kwSel() + ' – ' + h(kwObj().name) : 'Fertigmeldung für alle Kettenwerke'} (Auswahl oben „Kettenwerk / Abschnitt“). <label><input type="checkbox" id="rOnlyNok"> nur außer Toleranz anzeigen</label></p>
     <div class="rtw"><table id="rAt"><tr><th>Mast / Stp</th><th>Bauart</th><th>KW</th><th>FH [m] (Abw.)</th><th>b [cm] (Abw.)</th><th>SH [m] (Abw.)</th><th>Ausl. [cm] (Abw.)</th><th>Reg.</th><th>Bemerkung</th></tr>${tr.join('')}</table></div>`;
   q('#rOnlyNok').onchange = e => qa('#rAt tr[data-st]').forEach(t => t.hidden = e.target.checked && t.dataset.st !== 'nok');
   q('#rXlsx').onclick = exportXlsx;
   q('#rBak').onclick = shareStand;
+  const go = q('#rSyGo'); if (go) go.onclick = () => { q('#rTabs button[data-t="cfg"]').click(); q('#rSyC')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  syShow();
   q('#rBakIn').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) readStand(fs); };
 }
 /* ---------- Abgleich ohne Server: Stand-Datei teilen / einlesen ---------- */
@@ -321,7 +325,7 @@ function syncInfo() { const mine = Object.values(S.st || {}).filter(s => s[1] ==
   const prL = Object.entries(pr).sort((a, b) => b[1].t.localeCompare(a[1].t)).map(([n, x]) => `<tr><td>${h(n)}${n === S.g.Name ? ' (du)' : ''}</td><td>${x.c}</td><td>${x.t ? dtT(x.t) : ''}</td></tr>`).join('');
   const prT = prL ? `<div class="rtw"><table class="rprl"><tr><th>Prüfer / Trupp</th><th>Einträge</th><th>zuletzt</th></tr>${prL}</table></div>` : '';
   return `${S.g.Name ? '' : '<p class="rnote">Bitte oben unter ⋯ „Prüfer / Trupp“ eintragen, damit die Kollegen sehen, wer was abgehakt hat.</p>'}
-    <p class="rhint">${mine ? `<b>${mine}</b> eigene Einträge noch nicht geteilt.` : 'Alle eigenen Einträge geteilt.'}${S.sent ? ' Zuletzt geteilt: ' + dtT(S.sent) + '.' : ''}<br>${oth.length ? 'Eingelesen von: ' + oth.join(', ') : 'Noch nichts von Kollegen eingelesen.'}</p>${prT}`; }
+    <p class="rhint">${syCfg() ? (Object.keys(S.q || {}).length ? `<b>${Object.keys(S.q).length}</b> Einträge warten auf Netz und gehen automatisch raus.` : 'Alle eigenen Einträge übertragen.') : mine ? `<b>${mine}</b> eigene Einträge noch nicht geteilt.` : 'Alle eigenen Einträge geteilt.'}${S.sent ? ' Zuletzt als Datei geteilt: ' + dtT(S.sent) + '.' : ''}<br>${oth.length ? 'Eingelesen von: ' + oth.join(', ') : 'Noch nichts von Kollegen eingelesen.'}</p>${prT}`; }
 async function shareStand() {
   if (!S.g.Name) { const n = (prompt('Dein Name (Prüfer / Trupp) – erscheint bei den Kollegen an deinen Haken:') || '').trim(); if (!n) return;
     S.g.Name = n; q('#rName').value = n; Object.values(S.st || {}).forEach(s => { if (!s[1]) s[1] = n; }); }
@@ -600,7 +604,8 @@ function syDo() { if (!B || !syPend.size) return; const a = document.activeEleme
 function syShow() { const d = q('#rSyD'); if (!d) return; const c = syCfg(), n = Object.keys(S?.q || {}).length;
   d.hidden = !c; d.className = 'rsyd ' + (syState === 'ok' ? 'on' : /Fehler|Zugriff/.test(syState) ? 'err' : 'off');
   d.textContent = (syState === 'ok' ? '●' : '○') + (n ? ' ' + n : ''); d.title = 'Online-Abgleich: ' + (syState || 'aus') + (n ? `, ${n} warten` : '');
-  const s = q('#rSyS'); if (s) s.textContent = (c ? (syState || 'aus') : 'aus') + (n ? ` · ${n} Einträge warten` : '') + (syLast && syState === 'ok' ? ' · ' + dtT(syLast) : ''); }
+  const s2 = q('#rSyS2'); if (s2) s2.textContent = (syState || 'verbinde …') + (n ? ` · ${n} Einträge warten` : '') + (syLast && syState === 'ok' ? ' · ' + dtT(syLast) : '');
+  const s = q('#rSyS'); if (s) s.textContent =(c ? (syState || 'aus') : 'aus') + (n ? ` · ${n} Einträge warten` : '') + (syLast && syState === 'ok' ? ' · ' + dtT(syLast) : ''); }
 function syCode() { const a = crypto.getRandomValues(new Uint8Array(24)), z = 'abcdefghijkmnpqrstuvwxyz23456789'; return [...a].map(b => z[b & 31]).join('') + z[a[0] >> 5]; }
 function syParse(t) { const m = String(t || '').match(/olsync=([A-Za-z0-9+/=_-]+)/); if (!m) return null; try { const o = JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g, '+').replace(/_/g, '/'))))); return o.url && o.code ? o : null; } catch { return null; } }
 function renderSync() { const el = q('#rSyC'); if (!el) return; const c = syCfg() || JSON.parse(localStorage.getItem(SYK + '.e') || '{}');
