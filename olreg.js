@@ -314,16 +314,18 @@ function renderAus() {
   q('#rXlsx').onclick = exportXlsx;
   q('#rBak').onclick = shareStand;
   const go = q('#rSyGo'); if (go) go.onclick = () => { q('#rTabs button[data-t="cfg"]').click(); q('#rSyC')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  qa('[data-mg]').forEach(b => { b.onclick = () => mergeName(b.dataset.mg); });
   syShow();
   q('#rBakIn').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) readStand(fs); };
 }
 /* ---------- Abgleich ohne Server: Stand-Datei teilen / einlesen ---------- */
 function syncInfo() { const mine = Object.values(S.st || {}).filter(s => s[1] === (S.g.Name || '') && s[0] > (S.sent || '')).length;
   const oth = Object.entries(S.sy || {}).sort((a, b) => b[1].localeCompare(a[1])).map(([n, t]) => `${h(n || '?')} (${dtT(t)})`);
-  const pr = {}; for (const s of Object.values(S.st || {})) { const n = s[1] || '?', x = pr[n] ||= { c: 0, t: '' }; x.c++; if (s[0] > x.t) x.t = s[0]; }
+  const pr = {}; for (const [p, s] of Object.entries(S.st || {})) { if (p.startsWith('al|')) continue; const n = s[1] || '?', x = pr[n] ||= { c: 0, t: '' }; x.c++; if (s[0] > x.t) x.t = s[0]; }
   for (const [n, t] of Object.entries(S.sy || {})) { const x = pr[n || '?'] ||= { c: 0, t: '' }; if (t > x.t) x.t = t; }
-  const prL = Object.entries(pr).sort((a, b) => b[1].t.localeCompare(a[1].t)).map(([n, x]) => `<tr><td>${h(n)}${n === S.g.Name ? ' (du)' : ''}</td><td>${x.c}</td><td>${x.t ? dtT(x.t) : ''}</td></tr>`).join('');
-  const prT = prL ? `<div class="rtw"><table class="rprl"><tr><th>Prüfer / Trupp</th><th>Einträge</th><th>zuletzt</th></tr>${prL}</table></div>` : '';
+  const prL = Object.entries(pr).sort((a, b) => b[1].t.localeCompare(a[1].t)).map(([n, x]) => `<tr><td>${h(n)}${n === S.g.Name ? ' (du)' : ''}</td><td>${x.c}</td><td>${x.t ? dtT(x.t) : ''}</td><td>${n !== (S.g.Name || '') && Object.keys(pr).length > 1 ? `<button type="button" class="secbtn rmg" data-mg="${h(n === '?' ? '' : n)}" title="Einträge dieses Namens einem anderen Namen zuordnen (z. B. nach Namensänderung)">zusammenführen</button>` : ''}</td></tr>`).join('');
+  const prT = prL ? `<div class="rtw"><table class="rprl"><tr><th>Prüfer / Trupp</th><th>Einträge</th><th>zuletzt</th><th></th></tr>${prL}</table></div>
+    <p class="rhint">Hat ein Kollege seinen Namen geändert, beim alten Namen „zusammenführen“ tippen. Die Einträge zählen dann zum neuen Namen, auch bei den Kollegen.</p>` : '';
   return `${S.g.Name ? '' : '<p class="rnote">Bitte oben unter ⋯ „Prüfer / Trupp“ eintragen, damit die Kollegen sehen, wer was abgehakt hat.</p>'}
     <p class="rhint">${syCfg() ? (Object.keys(S.q || {}).length ? `<b>${Object.keys(S.q).length}</b> Einträge warten auf Netz und gehen automatisch raus.` : 'Alle eigenen Einträge übertragen.') : mine ? `<b>${mine}</b> eigene Einträge noch nicht geteilt.` : 'Alle eigenen Einträge geteilt.'}${S.sent ? ' Zuletzt als Datei geteilt: ' + dtT(S.sent) + '.' : ''}<br>${oth.length ? 'Eingelesen von: ' + oth.join(', ') : 'Noch nichts von Kollegen eingelesen.'}</p>${prT}`; }
 async function shareStand() {
@@ -341,9 +343,27 @@ const valOf = p => { const [a, b, c] = p.split('|'), x = S[a]?.[b]; return (c ==
 function mergeStand(o) { let n = 0; const st = o.st || {};
   for (const [p, s] of Object.entries(st)) { const l = S.st[p]; if (l && l[0] >= s[0]) continue;
     const [a, b, c] = p.split('|'), src = o[a] || {}; if (!setVal(p, c === undefined ? src[b] : src[b]?.[c], s[0])) continue;
-    S.st[p] = s; syQueue(p); n++; }
-  Object.values(st).forEach(s => { const k = s[1] || '?'; if (k !== (S.g.Name || '') && (!S.sy[k] || S.sy[k] < s[0])) S.sy[k] = s[0]; });
+    S.st[p] = [s[0], nmOf(s[1])]; syQueue(p); n++; }
+  applyAl();
+  Object.values(st).forEach(s => { const k = nmOf(s[1]) || '?'; if (k !== (S.g.Name || '') && (!S.sy[k] || S.sy[k] < s[0])) S.sy[k] = s[0]; });
   return n; }
+/* Namen zusammenführen (z. B. nach Namensänderung): S.al[alt] = neu. Die Zuordnung ist selbst ein Feld 'al|alt'
+   und verteilt sich wie jeder Eintrag (online / Stand-Datei); jedes Gerät benennt die Stempel dann selbst um. Werte und Zeiten bleiben. */
+const nmOf = n => { let k = n || '', i = 0; while (S.al && Object.prototype.hasOwnProperty.call(S.al, k) && S.al[k] !== k && i++ < 9) k = S.al[k]; return k; };
+function applyAl() { let n = 0; if (!S.al || !Object.keys(S.al).length) return 0;
+  for (const [p, s] of Object.entries(S.st || {})) { if (p.startsWith('al|')) continue; const k = nmOf(s[1]); if (k !== (s[1] || '')) { s[1] = k; n++; } }
+  for (const k of Object.keys(S.sy || {})) { const t = nmOf(k === '?' ? '' : k) || '?'; if (t !== k) { const v = S.sy[k]; delete S.sy[k]; if (t !== (S.g.Name || '') && (!S.sy[t] || S.sy[t] < v)) S.sy[t] = v; } }
+  return n; }
+function mergeName(alt) { const an = alt || '?';
+  if (alt === (S.g.Name || '')) return alert('Das ist dein aktueller Name. Ändere ihn oben unter ⋯ „Prüfer / Trupp“.');
+  const names = [...new Set([...Object.values(S.st || {}).map(s => s[1] || ''), ...Object.keys(S.sy || {}).map(k => k === '?' ? '' : k), S.g.Name || ''])].filter(n => n && n !== alt).sort((a, b) => a.localeCompare(b));
+  if (!names.length) return alert('Kein anderer Name zum Zusammenführen vorhanden.');
+  const a = prompt(`Einträge von „${an}“ gehören zu:\n${names.map((n, i) => `${i + 1} = ${n}${n === S.g.Name ? ' (du)' : ''}`).join('\n')}\n\nNummer eingeben:`);
+  if (a == null) return; const t = names[parseInt(a, 10) - 1]; if (!t) return alert('Ungültige Nummer.');
+  const c = Object.entries(S.st || {}).filter(([p, s]) => !p.startsWith('al|') && (s[1] || '') === alt).length;
+  if (!confirm(`${c} Einträge von „${an}“ ab jetzt „${t}“ zuordnen?\nMesswerte und Zeiten bleiben unverändert. Die Zuordnung geht auch an die Kollegen.`)) return;
+  if (S.al[t] === alt) delete S.al[t];
+  S.al[alt] = t; stamp('al|' + alt); applyAl(); save(); render(); }
 async function readStand(fs) { let n = 0, f0 = 0; const von = [];
   for (const f of fs) { let o; try { o = JSON.parse(await f.text()); } catch { f0++; continue; }
     if (!o.m) { f0++; continue; }
@@ -445,7 +465,7 @@ REG.addEventListener('click', e => { const lpb = e.target.closest('[data-lp]'); 
 
 /* ---------- Baustellen laden / importieren ---------- */
 const today = () => (S?.g?.Date || new Date().toISOString().slice(0, 10));
-function norm(o) { return { v: 6, cfg: { ...DEF, ...(B.cfg || {}), ...(o.cfg || {}) }, m: o.m || {}, kw: o.kw || {}, g: o.g || {}, km: o.km || {}, ar: o.ar || {}, be: o.be || {}, st: o.st || {}, sy: o.sy || {}, sent: o.sent || '', q: o.q || {} }; }
+function norm(o) { return { v: 6, cfg: { ...DEF, ...(B.cfg || {}), ...(o.cfg || {}) }, m: o.m || {}, kw: o.kw || {}, g: o.g || {}, km: o.km || {}, ar: o.ar || {}, be: o.be || {}, st: o.st || {}, sy: o.sy || {}, al: o.al || {}, sent: o.sent || '', q: o.q || {} }; }
 async function refreshList() { const ks = await DB.keys('baustellen'); list = [];
   for (const k of ks) { const b = await DB.get('baustellen', k); list.push({ id: k, name: b?.meta?.name || k }); } }
 async function loadBs(id) { B = await DB.get('baustellen', id); if (!B) return; S = norm(await DB.get('mess', id) || {}); syConnect(); try { localStorage.setItem(LAST, id); } catch {} head(); render(); }
@@ -573,7 +593,7 @@ async function syPush() { const u = syBase(); if (!u || syBusy) return syShow();
   catch (e) { syState = navigator.onLine ? 'Fehler: ' + (e.message || e) : 'offline'; }
   finally { syBusy = false; syShow(); } }
 function syApply(p, x) { const l = S.st[p]; if (!x?.t || (l && l[0] >= x.t)) return false; if (!setVal(p, x.v, x.t)) return false;
-  S.st[p] = [x.t, x.n || '']; const k = x.n || '?'; if (k !== (S.g.Name || '') && (!S.sy[k] || S.sy[k] < x.t)) S.sy[k] = x.t; return true; }
+  S.st[p] = [x.t, nmOf(x.n)]; if (p.startsWith('al|')) applyAl(); const k = nmOf(x.n) || '?'; if (k !== (S.g.Name || '') && (!S.sy[k] || S.sy[k] < x.t)) S.sy[k] = x.t; return true; }
 /* Einträge aus der Zeit vor den Stempeln (vor v33) nachträglich stempeln, damit sie hochgeladen werden */
 function stampOld() { if (!S) return 0; const st = S.st ||= {}, n0 = S.g.Name || '', now = nowIso(); let n = 0;
   const add = (p, t) => { if (!st[p]) { st[p] = [t || now, n0]; (S.q ||= {})[p] = 1; n++; } };
