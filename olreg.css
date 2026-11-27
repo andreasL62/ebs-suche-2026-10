@@ -122,3 +122,16 @@ body.regopen { overflow: hidden; }
 .rprl { margin-top: 6px; font-size: 13px; }
 .rprl td:nth-child(2) { text-align: right; }
 .rsomf { white-space: nowrap; }
+/* v42: Kopf wie Zellen ausrichten, Haken-Spalte schmal (Name/Zeit darf umbrechen) */
+#reg table.rart th { text-align: center; vertical-align: bottom; }
+#reg table.rart th:first-child { text-align: left; }
+#reg table.rart th:last-child, #reg table.rart td:last-child { width: 1%; }
+#reg table.rart td:last-child input[type=checkbox] { margin: 0; }
+#reg table.rart .rwho { white-space: normal; width: 72px; margin: 2px auto 0; overflow-wrap: break-word; hyphens: auto; }
+#reg table.rbet { max-width: 900px; }
+#reg table.rbet button.rlpb { white-space: nowrap; }
+@media (max-width: 520px) {
+  #reg table.rbet td, #reg table.rbet th { padding: 5px 2px; }
+  #reg table.rbet td { font-size: 13px; }
+  #reg table.rart .rwho { width: 50px; font-size: 9px; }
+}

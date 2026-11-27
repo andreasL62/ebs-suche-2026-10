@@ -377,6 +377,9 @@ async function readStand(fs) { let n = 0, f0 = 0; const von = [];
   alert(`${n} Einträge übernommen${von.length ? ' von ' + [...new Set(von)].join(', ') : ''}.${f0 ? ` ${f0} Datei(en) ungültig.` : ''}`); }
 
 /* Einstellungen */
+/* App-Version = Name des Service-Worker-Caches (sw.js: CACHE = 'ebs2-vNN'). Zwei Caches = neue Version geladen, aber noch nicht neu gestartet. */
+async function appVer() { try { const v = (await caches.keys()).map(k => +(k.match(/^ebs2-v(\d+)$/) || [])[1]).filter(n => n).sort((a, b) => a - b);
+  return v.length ? `App-Version v${v[0]}${v.length > 1 ? ` · v${v[v.length - 1]} ist geladen – App neu starten` : ''}` : 'App-Version: unbekannt (ohne Offline-Speicher)'; } catch { return ''; } }
 function renderCfg() { const c = cfg(), i = (k, l, u) => `<label class="rf">${l}<span class="rrow"><input type="number" data-cfg="${k}" value="${c[k]}"> ${u}</span></label>`;
   q('#r-cfg').innerHTML = `<div class="rcard rpad"><h3>Regelwerte</h3><div class="rgrid">${i('fh', 'Regel-FH', 'mm')}${i('sh', 'Regel-SH', 'mm')}${i('sl', 'Regel-b-Maß ±', 'mm')}</div>
     <p class="rhint">b-Maß von Gleismitte (0): Pfeil zum Mast = −, Pfeil vom Mast weg = +. Pfeil ohne Zahl = Regelmaß. Werte hier in mm, in der Erfassung FH/SH in m, b-Maß in cm.</p></div>
@@ -386,8 +389,9 @@ function renderCfg() { const c = cfg(), i = (k, l, u) => `<label class="rf">${l}
     <div class="rcard rpad" id="rSyC"></div>
     <div class="rcard rpad"><h3>Baustelle</h3><p class="rhint">${h(B.meta.name)} · erstellt ${h(B.meta.erstellt || '')}<br>Quellen: ${(B.meta.quellen || []).map(h).join(' · ')}</p>
     <div id="rKorr"></div>
-    <p class="rrow"><button type="button" class="secbtn" id="rRst">Toleranzen auf Standard</button><button type="button" class="secbtn danger" id="rClr">Messwerte dieser Baustelle löschen</button><button type="button" class="secbtn danger" id="rDel">Baustelle vom Gerät entfernen</button></p></div>`;
-  renderKorr(); renderSync();
+    <p class="rrow"><button type="button" class="secbtn" id="rRst">Toleranzen auf Standard</button><button type="button" class="secbtn danger" id="rClr">Messwerte dieser Baustelle löschen</button><button type="button" class="secbtn danger" id="rDel">Baustelle vom Gerät entfernen</button></p></div>
+    <p class="rhint rpad" id="rVer"></p>`;
+  renderKorr(); renderSync(); appVer().then(t => { const e = q('#rVer'); if (e) e.textContent = t; });
   q('#rRst').onclick = () => { S.cfg = { ...DEF, ...(B.cfg || {}) }; save(); renderCfg(); };
   q('#rClr').onclick = () => { if (confirm('Alle Messwerte dieser Baustelle auf diesem Gerät löschen? Vorher „Sicherung speichern“!')) { S.m = {}; S.kw = {}; S.km = {}; save(); render(); } };
   q('#rDel').onclick = async () => { if (!confirm(`Baustelle „${B.meta.name}“ samt Messwerten von diesem Gerät entfernen?`)) return;
