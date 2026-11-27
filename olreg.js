@@ -142,7 +142,7 @@ function shell() {
       <div class="rsub" id="rSub"></div>
       <div class="rbar">
         <label>Datum<input id="rDate" type="date"></label>
-        <label>Prüfer / Trupp<input id="rName"></label>
+        <label>Prüfer / Trupp<span class="rnmw"><input id="rName"><button type="button" class="iconbtn" id="rNameCh" hidden>ändern</button></span></label>
         <label class="iconbtn rfile" title="Baustelle importieren (.olreg)">Import<input type="file" id="rImp" hidden></label>
         <a id="rFolder" class="iconbtn rfile" target="_blank" rel="noopener" title="OneDrive-Ordner mit den Baustellen-Dateien öffnen" hidden>Ordner</a>
       </div>
@@ -175,7 +175,7 @@ function head() {
   if (!B) return; sel.value = B.meta.id;
   q('#rSub').textContent = [B.meta.strecke, B.meta.bereich, B.meta.bauart].filter(Boolean).join(' · ');
   q('#rKw').innerHTML = '<option value="">alle Kettenwerke</option>' + B.kettenwerke.map(k => `<option value="${k.nr}">KW ${k.nr} – ${h(k.name)} (${k.von}–${k.bis})</option>`).join('');
-  q('#rKw').value = kwSel(); q('#rT').value = S.g.T || ''; q('#rDate').value = S.g.Date || new Date().toISOString().slice(0, 10); S.g.Date = q('#rDate').value; q('#rName').value = S.g.Name || '';
+  q('#rKw').value = kwSel(); q('#rT').value = S.g.T || ''; q('#rDate').value = S.g.Date || new Date().toISOString().slice(0, 10); S.g.Date = q('#rDate').value; q('#rName').value = S.g.Name || ''; nameLock();
 }
 
 /* Soll-b-Maß je Stützpunkt (mit Korrekturen aus der App) für die zugeklappte Zeile */
@@ -324,16 +324,18 @@ function renderAus() {
 /* ---------- Abgleich ohne Server: Stand-Datei teilen / einlesen ---------- */
 function syncInfo() { const mine = Object.values(S.st || {}).filter(s => s[1] === (S.g.Name || '') && s[0] > (S.sent || '')).length;
   const oth = Object.entries(S.sy || {}).sort((a, b) => b[1].localeCompare(a[1])).map(([n, t]) => `${h(n || '?')} (${dtT(t)})`);
-  const pr = {}; for (const [p, s] of Object.entries(S.st || {})) { if (p.startsWith('al|')) continue; const n = s[1] || '?', x = pr[n] ||= { c: 0, t: '' }; x.c++; if (s[0] > x.t) x.t = s[0]; }
+  const pr = {}; for (const [p, s] of Object.entries(S.st || {})) { if (/^(al|rq|cf)\|/.test(p)) continue; const n = s[1] || '?', x = pr[n] ||= { c: 0, t: '' }; x.c++; if (s[0] > x.t) x.t = s[0]; }
   for (const [n, t] of Object.entries(S.sy || {})) { const x = pr[n || '?'] ||= { c: 0, t: '' }; if (t > x.t) x.t = t; }
-  const prL = Object.entries(pr).sort((a, b) => b[1].t.localeCompare(a[1].t)).map(([n, x]) => `<tr><td>${h(n)}${n === S.g.Name ? ' (du)' : ''}</td><td>${x.c}</td><td>${x.t ? dtT(x.t) : ''}</td><td>${n !== (S.g.Name || '') && Object.keys(pr).length > 1 ? `<button type="button" class="secbtn rmg" data-mg="${h(n === '?' ? '' : n)}" title="Einträge dieses Namens einem anderen Namen zuordnen (z. B. nach Namensänderung)">zusammenführen</button>` : ''}</td></tr>`).join('');
+  const prL = Object.entries(pr).sort((a, b) => b[1].t.localeCompare(a[1].t)).map(([n, x]) => `<tr><td>${h(n)}${n === S.g.Name ? ' (du)' : ''}</td><td>${x.c}</td><td>${x.t ? dtT(x.t) : ''}</td><td>${isAdm() && n !== (S.g.Name || '') && Object.keys(pr).length > 1 ? `<button type="button" class="secbtn rmg" data-mg="${h(n === '?' ? '' : n)}" title="Einträge dieses Namens einem anderen Namen zuordnen (z. B. nach Namensänderung)">zusammenführen</button>` : ''}</td></tr>`).join('');
   const prT = prL ? `<div class="rtw"><table class="rprl"><tr><th>Prüfer / Trupp</th><th>Einträge</th><th>zuletzt</th><th></th></tr>${prL}</table></div>
-    <p class="rhint">Hat ein Kollege seinen Namen geändert, beim alten Namen „zusammenführen“ tippen. Die Einträge zählen dann zum neuen Namen, auch bei den Kollegen.</p>` : '';
-  return `${S.g.Name ? '' : '<p class="rnote">Bitte oben unter ⋯ „Prüfer / Trupp“ eintragen, damit die Kollegen sehen, wer was abgehakt hat.</p>'}
+    ${isAdm() ? '<p class="rhint">Doppelter Name für dieselbe Person: beim alten Namen „zusammenführen“ tippen. Die Einträge zählen dann zum neuen Namen, auch bei den Kollegen.</p>' : ''}` : '';
+  const rqs = Object.entries(S.rq || {}).filter(([, n]) => n);
+  const rqT = isAdm() ? (rqs.length ? `<div class="rnote"><b>Namensänderung beantragt</b>${rqs.map(([a, n]) => `<p class="rrow">${h(a)} → <b>${h(n)}</b> <button type="button" class="primarybtn" data-rq="${h(a)}" data-ok="1">Freigeben</button><button type="button" class="secbtn" data-rq="${h(a)}" data-ok="0">Ablehnen</button></p>`).join('')}</div>` : '')
+    : (S.rq?.[myN()] ? `<p class="rnote">Namensänderung zu „${h(S.rq[myN()])}“ wartet auf Freigabe durch ${h(admOf()?.n || 'den Admin')}.</p>` : '');
+  return `${rqT}${S.g.Name ? '' :'<p class="rnote">Bitte oben unter ⋯ „Prüfer / Trupp“ eintragen, damit die Kollegen sehen, wer was abgehakt hat.</p>'}
     <p class="rhint">${syCfg() ? (Object.keys(S.q || {}).length ? `<b>${Object.keys(S.q).length}</b> Einträge warten auf Netz und gehen automatisch raus.` : 'Alle eigenen Einträge übertragen.') : mine ? `<b>${mine}</b> eigene Einträge noch nicht geteilt.` : 'Alle eigenen Einträge geteilt.'}${S.sent ? ' Zuletzt als Datei geteilt: ' + dtT(S.sent) + '.' : ''}<br>${oth.length ? 'Eingelesen von: ' + oth.join(', ') : 'Noch nichts von Kollegen eingelesen.'}</p>${prT}`; }
 async function shareStand() {
-  if (!S.g.Name) { const n = (prompt('Dein Name (Prüfer / Trupp) – erscheint bei den Kollegen an deinen Haken:') || '').trim(); if (!n) return;
-    S.g.Name = n; q('#rName').value = n; Object.values(S.st || {}).forEach(s => { if (!s[1]) s[1] = n; }); }
+  if (!S.g.Name && !askFirstName()) return;
   const t = nowIso(), nm = S.g.Name.replace(/[^\wäöüÄÖÜß-]+/g, '_');
   const o = { format: 'olreg-stand', baustelle: B.meta.id, von: S.g.Name, erstellt: t, ...S };
   await share(`OL-Stand_${B.meta.id}_${nm}_${t.slice(0, 16).replace(/[-:T]/g, '')}.json`, new Blob([JSON.stringify(o)], { type: 'application/json' }));
@@ -345,7 +347,8 @@ const valOf = p => { const [a, b, c] = p.split('|'), x = S[a]?.[b]; return (c ==
 /* Zusammenführen: je Feld gewinnt der neuere Stempel; ein Stempel ohne Wert = Haken entfernt */
 function mergeStand(o) { let n = 0; const st = o.st || {};
   for (const [p, s] of Object.entries(st)) { const l = S.st[p]; if (l && l[0] >= s[0]) continue;
-    const [a, b, c] = p.split('|'), src = o[a] || {}; if (!setVal(p, c === undefined ? src[b] : src[b]?.[c], s[0])) continue;
+    const [a, b, c] = p.split('|'), src = o[a] || {}, v = c === undefined ? src[b] : src[b]?.[c];
+    if (!okRemote(p, v, s[1])) continue; if (!setVal(p, v, s[0])) continue;
     S.st[p] = [s[0], nmOf(s[1])]; syQueue(p); n++; }
   applyAl();
   Object.values(st).forEach(s => { const k = nmOf(s[1]) || '?'; if (k !== (S.g.Name || '') && (!S.sy[k] || S.sy[k] < s[0])) S.sy[k] = s[0]; });
@@ -356,8 +359,9 @@ const nmOf = n => { let k = n || '', i = 0; while (S.al && Object.prototype.hasO
 function applyAl() { let n = 0; if (!S.al || !Object.keys(S.al).length) return 0;
   for (const [p, s] of Object.entries(S.st || {})) { if (p.startsWith('al|')) continue; const k = nmOf(s[1]); if (k !== (s[1] || '')) { s[1] = k; n++; } }
   for (const k of Object.keys(S.sy || {})) { const t = nmOf(k === '?' ? '' : k) || '?'; if (t !== k) { const v = S.sy[k]; delete S.sy[k]; if (t !== (S.g.Name || '') && (!S.sy[t] || S.sy[t] < v)) S.sy[t] = v; } }
+  const me = S.g.Name || '', nn = nmOf(me); if (me && nn && nn !== me) { S.g.Name = nn; if (S.rq?.[me]) delete S.rq[me]; if (q('#rName')) q('#rName').value = nn; nameLock(); }   // eigener Name freigegeben
   return n; }
-function mergeName(alt) { const an = alt || '?';
+function mergeName(alt) { const an = alt || '?'; if (!isAdm()) return;
   if (alt === (S.g.Name || '')) return alert('Das ist dein aktueller Name. Ändere ihn oben unter ⋯ „Prüfer / Trupp“.');
   const names = [...new Set([...Object.values(S.st || {}).map(s => s[1] || ''), ...Object.keys(S.sy || {}).map(k => k === '?' ? '' : k), S.g.Name || ''])].filter(n => n && n !== alt).sort((a, b) => a.localeCompare(b));
   if (!names.length) return alert('Kein anderer Name zum Zusammenführen vorhanden.');
@@ -367,6 +371,71 @@ function mergeName(alt) { const an = alt || '?';
   if (!confirm(`${c} Einträge von „${an}“ ab jetzt „${t}“ zuordnen?\nMesswerte und Zeiten bleiben unverändert. Die Zuordnung geht auch an die Kollegen.`)) return;
   if (S.al[t] === alt) delete S.al[t];
   S.al[alt] = t; stamp('al|' + alt); applyAl(); save(); render(); }
+
+/* ---------- Rechte (v45): Admin per PIN, Name nach dem ersten Eintragen gesperrt, fremde Haken nur Admin ----------
+   cf|adm = {n: Admin-Name, h: SHA-256 der PIN} verteilt sich wie jeder Eintrag. Admin ist ein Gerät, auf dem die PIN
+   eingegeben wurde (S.g.admH, nur lokal). rq|alt = neuer Name = Antrag auf Namensänderung, Freigabe setzt al|alt.
+   Alles läuft im Gerät (kein Server) – schützt vor Versehen und Alleingängen, nicht vor Manipulation am Code. */
+const myN = () => S.g.Name || '';
+const admOf = () => S.cf?.adm || null;
+const isAdm = () => !!(admOf() && S.g.admH && S.g.admH === admOf().h);
+async function pinHash(pin) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('olreg-adm|' + B.meta.id + '|' + pin));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+const otherNames = () => new Set([...Object.entries(S.st || {}).filter(([p]) => !/^(al|rq|cf)\|/.test(p)).map(([, s]) => nmOf(s[1])),
+  ...Object.keys(S.sy || {}), admOf()?.n || ''].filter(n => n && n !== '?' && n !== myN()));
+function setMyName(n) { const old = myN(); S.g.Name = n; Object.values(S.st || {}).forEach(s => { if (!s[1]) s[1] = n; });
+  if (q('#rName')) q('#rName').value = n; nameLock(); return old; }
+function nameLock() { const i = q('#rName'), b = q('#rNameCh'); if (!i || !S) return; const on = !!myN(); i.readOnly = on; if (b) b.hidden = !on;
+  const r = S.rq?.[myN()]; if (b) b.textContent = r ? 'Antrag …' : 'ändern'; }
+function askFirstName() { const n = (prompt('Dein Name (Prüfer / Trupp) – erscheint bei den Kollegen an deinen Haken.\nSpäter ändern nur mit Freigabe des Admins:') || '').trim(); if (!n) return false;
+  if (otherNames().has(n) && !confirm(`„${n}“ wird schon verwendet. Nur nehmen, wenn du das bist (z. B. neues Handy)?`)) return false;
+  setMyName(n); save(); return true; }
+function nameFirst(t) { const n = t.value.trim(); if (!n) { S.g.Name = ''; save(); return; }
+  if (otherNames().has(n) && !confirm(`„${n}“ wird schon verwendet. Nur nehmen, wenn du das bist (z. B. neues Handy)?`)) { t.value = ''; S.g.Name = ''; save(); return; }
+  setMyName(n); save(); render(); }
+async function nameChange() { const old = myN(); if (!old) return;
+  if (isAdm()) { const n = (prompt(`Neuer Name statt „${old}“:`, old) || '').trim(); if (!n || n === old) return;
+    if (S.al[n] === old) delete S.al[n]; S.al[old] = n; stamp('al|' + old);   // noch unter altem Namen stempeln
+    S.cf.adm = { ...admOf(), n }; stamp('cf|adm'); setMyName(n); applyAl(); save(); render(); return; }
+  const r = S.rq?.[old];
+  if (r) { if (confirm(`Dein Antrag „${old}“ → „${r}“ wartet noch auf Freigabe.\nAntrag zurückziehen?`)) { delete S.rq[old]; stamp('rq|' + old); save(); nameLock(); render(); } return; }
+  if (!admOf()) return alert('Namen ändern geht nur mit Freigabe durch den Admin. Es ist noch kein Admin eingerichtet (⚙ → Admin).');
+  const n = (prompt(`Neuer Name statt „${old}“?\nDie Änderung gilt erst, wenn ${admOf().n} sie freigibt.`) || '').trim(); if (!n || n === old) return;
+  if (otherNames().has(n) && !confirm(`„${n}“ wird schon verwendet. Trotzdem beantragen?`)) return;
+  S.rq[old] = n; stamp('rq|' + old); save(); nameLock(); render();
+  alert(`Antrag gesendet. Dein Name wird „${n}“, sobald ${admOf().n} freigibt${syCfg() ? '' : ' – ohne Online-Abgleich per „Stand teilen“ schicken'}.`); }
+function rqDo(alt, ok) { if (!isAdm()) return; const n = S.rq?.[alt]; if (!n) return;
+  if (ok) { if (S.al[n] === alt) delete S.al[n]; S.al[alt] = n; stamp('al|' + alt); }
+  delete S.rq[alt]; stamp('rq|' + alt); applyAl(); save(); render(); }
+async function admSetup() {
+  if (isAdm()) { if (confirm('Admin auf diesem Gerät abmelden? (Wieder anmelden mit der PIN.)')) { delete S.g.admH; save(); render(); } return; }
+  if (admOf()) { const p = prompt(`Admin ist ${admOf().n}. PIN eingeben:`); if (p == null) return;
+    if (await pinHash(p.trim()) !== admOf().h) return alert('PIN falsch.');
+    S.g.admH = admOf().h; save(); render(); return; }
+  if (!myN()) return alert('Zuerst oben unter ⋯ „Prüfer / Trupp“ deinen Namen eintragen.');
+  const p1 = prompt(`Admin einrichten für „${myN()}“.\nNeue PIN (mind. 6 Zeichen) – gut merken, sie steht nirgends:`); if (p1 == null) return;
+  if (p1.trim().length < 6) return alert('PIN zu kurz (mind. 6 Zeichen).');
+  if (prompt('PIN wiederholen:') !== p1) return alert('PINs stimmen nicht überein.');
+  const h = await pinHash(p1.trim()); S.cf.adm = { n: myN(), h }; stamp('cf|adm'); S.g.admH = h; save(); render(); }
+function admCard() { const a = admOf();
+  return `<h3>Admin</h3><p class="rhint">${a ? (isAdm() ? `<b>Du bist Admin</b> (${h(a.n)}). Du gibst Namensänderungen frei (Reiter Meldung) und darfst auch fremde Haken entfernen.`
+    : `Admin: <b>${h(a.n)}</b>. Namen ändern nur mit seiner Freigabe; Haken entfernen nur die eigenen.`)
+    : 'Noch kein Admin. Wer Admin wird, gibt Namensänderungen frei und darf fremde Haken entfernen. Die anderen dürfen nur ihre eigenen Haken entfernen.'}</p>
+    <p class="rrow"><button type="button" class="secbtn" id="rAdm">${a ? (isAdm() ? 'Admin abmelden' : 'Als Admin anmelden (PIN)') : 'Admin einrichten'}</button></p>`; }
+/* Haken: Pfad des Kontrollkästchens; Entfernen nur durch den, der ihn gesetzt hat, oder den Admin */
+function tickPath(t) { if (t.type !== 'checkbox') return null; if (t.dataset.beok) return 'be|' + t.dataset.beok; if (t.dataset.arok) return 'ar|' + t.dataset.arok;
+  const st = t.closest('.rstp'); if (st && t.dataset.f) return 'm|' + st.dataset.key + '|' + t.dataset.f;
+  const kr = t.closest('[data-kwr]'); if (kr && t.dataset.k && /^ok/.test(t.dataset.k)) return 'kw|' + kr.dataset.kwr + '|' + t.dataset.k; return null; }
+const tickOwner = p => nmOf(stOf(p)?.[1] || '');
+const mayUntick = p => { const o = tickOwner(p); return !o || o === myN() || isAdm(); };
+const isTickPath = p => /^(be|ar)\|/.test(p) || (/^(m|kw)\|/.test(p) && typeof valOf(p) === 'boolean');
+/* Eingehende Einträge (online oder Stand-Datei) prüfen: von n mit Wert v für Feld p */
+function okRemote(p, v, n) { const a = admOf(), w = nmOf(n || ''), adm = !!a && w === nmOf(a.n);
+  if (p === 'cf|adm') return !a || adm;
+  if (p.startsWith('al|')) return !a || adm;
+  if (p.startsWith('rq|')) return adm || w === nmOf(p.slice(3));
+  if (isTickPath(p) && valOf(p) && !v) { const o = tickOwner(p); return !o || o === w || adm; }
+  return true; }
 async function readStand(fs) { let n = 0, f0 = 0; const von = [];
   for (const f of fs) { let o; try { o = JSON.parse(await f.text()); } catch { f0++; continue; }
     if (!o.m) { f0++; continue; }
@@ -387,6 +456,7 @@ function renderCfg() { const c = cfg(), i = (k, l, u) => `<label class="rf">${l}
     <p class="rhint">Auslegerstellung ±50 mm nach ${ebsTag('02.05.33', 'Ebs 02.05.33')}. Übrige Toleranzen mit den Abnahmewerten abgleichen.</p></div>
     <div class="rcard rpad"><h3>Temperaturdehnung</h3><div class="rgrid">${i('alpha', 'α (×10⁻⁶ /K)', '')}${i('tm', 'Mittelstellung bei', '°C')}${i('rsMitte', 'Radspanner a bei Tm', 'mm')}${i('rsUe', 'Radspanner Übersetzung 1:', '')}</div></div>
     <div class="rcard rpad" id="rSyC"></div>
+    <div class="rcard rpad">${admCard()}</div>
     <div class="rcard rpad"><h3>Baustelle</h3><p class="rhint">${h(B.meta.name)} · erstellt ${h(B.meta.erstellt || '')}<br>Quellen: ${(B.meta.quellen || []).map(h).join(' · ')}</p>
     <div id="rKorr"></div>
     <p class="rrow"><button type="button" class="secbtn" id="rRst">Toleranzen auf Standard</button><button type="button" class="secbtn danger" id="rClr">Messwerte dieser Baustelle löschen</button><button type="button" class="secbtn danger" id="rDel">Baustelle vom Gerät entfernen</button></p></div>
@@ -423,6 +493,10 @@ function cleanKorr() { let n = 0; stpList().forEach(({ m, s, key }) => { const r
 
 /* ---------- Eingaben ---------- */
 REG.addEventListener('input', e => { const t = e.target; if (!B) return;
+  if (t.type === 'checkbox' && !t.checked) { const p = tickPath(t);
+    if (p && !mayUntick(p)) { t.checked = true; const s = stOf(p); const o = tickOwner(p), oa = o === nmOf(admOf()?.n || '');
+      alert(`Abgehakt von ${o}${s ? ' am ' + dtT(s[0]) : ''}.\nEntfernen kann nur ${o}${oa ? ' (Admin)' : ' selbst oder der Admin'}.`); return; } }
+  if (t.id === 'rName' && t.readOnly) return;
   if (t.dataset.km) { S.km[t.dataset.km] = t.value; stamp('km|' + t.dataset.km); save(); return; }
   if (t.dataset.beok) { if (t.checked) S.be[t.dataset.beok] = nowIso(); else delete S.be[t.dataset.beok]; stamp('be|' + t.dataset.beok); okCell(t, 'be|' + t.dataset.beok); save(); return; }
   if (t.dataset.arok) { if (t.checked) S.ar[t.dataset.arok] = nowIso(); else delete S.ar[t.dataset.arok]; stamp('ar|' + t.dataset.arok); okCell(t, 'ar|' + t.dataset.arok); save(); return; }
@@ -435,7 +509,8 @@ REG.addEventListener('input', e => { const t = e.target; if (!B) return;
   if (t.id === 'rT' || t.id === 'rDate' || t.id === 'rName') { S.g[t.id.slice(1)] = t.value; save(); if (t.id === 'rT') { qa('.rstp').forEach(upd); qa('[data-asum]').forEach(x => { x.textContent = asumTxt(mast(x.dataset.asum)); }); if (tab() === 'kw') qa('[data-kwr]').forEach(kwRow); } return; }
   if (t.dataset.cfg) { S.cfg[t.dataset.cfg] = num(t.value) ?? DEF[t.dataset.cfg]; save(); }
 });
-REG.addEventListener('change', e => { const kr = e.target.closest?.('[data-kwr]'); if (kr && e.target.dataset.k && e.target.dataset.k !== 'fp') kwRow(kr); });
+REG.addEventListener('change', e => { if (e.target.id === 'rName' && !e.target.readOnly && B) { S.g.Name = ''; nameFirst(e.target); return; }
+  const kr = e.target.closest?.('[data-kwr]'); if (kr && e.target.dataset.k && e.target.dataset.k !== 'fp') kwRow(kr); });
 /* Lageplan-Ausschnitt (Bild aus der .olreg, Schlüssel lageplan[Mast] = {bl, img base64-JPEG}) */
 function showLp(id, view) {
   const lp = B.lageplan?.[id], qp = B.querprofil?.[id]; if (!lp && !qp) return;
@@ -462,6 +537,8 @@ function showLp(id, view) {
   w.hidden = false; I.onload?.();
 }
 REG.addEventListener('click', e => { const lpb = e.target.closest('[data-lp]'); if (lpb) { e.preventDefault(); showLp(lpb.dataset.lp); return; }
+  if (!B) return; const ct = e.target.closest('#rNameCh, #rAdm, [data-rq]');
+  if (ct) { e.preventDefault(); if (ct.id === 'rNameCh') nameChange(); else if (ct.id === 'rAdm') admSetup(); else rqDo(ct.dataset.rq, ct.dataset.ok === '1'); return; }
   const ar = e.target.closest('[data-ar]');
   if (ar) { e.preventDefault(); const st = ar.closest('.rstp'), key = st.dataset.key, P = ausAr(key, true), N = ausAr(key, false);
     ar.textContent = ar.textContent === P ? N : P; st.querySelector('[data-f="aus"]').dispatchEvent(new Event('input', { bubbles: true })); return; }
@@ -472,7 +549,7 @@ REG.addEventListener('click', e => { const lpb = e.target.closest('[data-lp]'); 
 
 /* ---------- Baustellen laden / importieren ---------- */
 const today = () => (S?.g?.Date || new Date().toISOString().slice(0, 10));
-function norm(o) { return { v: 6, cfg: { ...DEF, ...(B.cfg || {}), ...(o.cfg || {}) }, m: o.m || {}, kw: o.kw || {}, g: o.g || {}, km: o.km || {}, ar: o.ar || {}, be: o.be || {}, st: o.st || {}, sy: o.sy || {}, al: o.al || {}, sent: o.sent || '', q: o.q || {} }; }
+function norm(o) { return { v: 6, cfg: { ...DEF, ...(B.cfg || {}), ...(o.cfg || {}) }, m: o.m || {}, kw: o.kw || {}, g: o.g || {}, km: o.km || {}, ar: o.ar || {}, be: o.be || {}, st: o.st || {}, sy: o.sy || {}, al: o.al || {}, rq: o.rq || {}, cf: o.cf || {}, sent: o.sent || '', q: o.q || {} }; }
 async function refreshList() { const ks = await DB.keys('baustellen'); list = [];
   for (const k of ks) { const b = await DB.get('baustellen', k); list.push({ id: k, name: b?.meta?.name || k }); } }
 async function loadBs(id) { B = await DB.get('baustellen', id); if (!B) return; S = norm(await DB.get('mess', id) || {}); syConnect(); try { localStorage.setItem(LAST, id); } catch {} head(); render(); }
@@ -599,7 +676,7 @@ async function syPush() { const u = syBase(); if (!u || syBusy) return syShow();
     ks.forEach(p => { if (!S.st[p] || S.st[p][0] === snap[p]) delete S.q[p]; }); save(); syState = 'ok'; syLast = nowIso(); }
   catch (e) { syState = navigator.onLine ? 'Fehler: ' + (e.message || e) : 'offline'; }
   finally { syBusy = false; syShow(); } }
-function syApply(p, x) { const l = S.st[p]; if (!x?.t || (l && l[0] >= x.t)) return false; if (!setVal(p, x.v, x.t)) return false;
+function syApply(p, x) { const l = S.st[p]; if (!x?.t || (l && l[0] >= x.t)) return false; if (!okRemote(p, x.v, x.n)) return false; if (!setVal(p, x.v, x.t)) return false;
   S.st[p] = [x.t, nmOf(x.n)]; if (p.startsWith('al|')) applyAl(); const k = nmOf(x.n) || '?'; if (k !== (S.g.Name || '') && (!S.sy[k] || S.sy[k] < x.t)) S.sy[k] = x.t; return true; }
 /* Einträge aus der Zeit vor den Stempeln (vor v33) nachträglich stempeln, damit sie hochgeladen werden */
 function stampOld() { if (!S) return 0; const st = S.st ||= {}, n0 = S.g.Name || '', now = nowIso(); let n = 0;
@@ -647,7 +724,7 @@ function renderSync() { const el = q('#rSyC'); if (!el) return; const c = syCfg(
   q('#rSyOn').onclick = () => { const url = q('#rSyU').value.trim().replace(/\/+$/, ''), code = q('#rSyK').value.trim();
     if (!/^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.(firebasedatabase\.app|firebaseio\.com)$/i.test(url)) return alert('Datenbank-Adresse prüfen (https://….firebasedatabase.app).');
     if (code.length < 20) return alert('Team-Code zu kurz (mind. 20 Zeichen) – „Neu“ tippen.');
-    if (!S.g.Name) { const n = (prompt('Dein Name (Prüfer / Trupp) – erscheint bei den Kollegen an deinen Haken:') || '').trim(); if (!n) return; S.g.Name = n; q('#rName').value = n; Object.values(S.st || {}).forEach(s => { if (!s[1]) s[1] = n; }); }
+    if (!S.g.Name && !askFirstName()) return;
     try { localStorage.setItem(SYK, JSON.stringify({ url, code })); } catch { return alert('Speichern auf dem Gerät nicht möglich.'); }
     Object.keys(S.st || {}).forEach(p => { S.q[p] = 1; }); save(); syConnect(); syPush(); renderSync(); };
   if (syCfg()) { q('#rSyL').onclick = async () => { const c2 = syCfg(), tk = btoa(unescape(encodeURIComponent(JSON.stringify(c2)))).replace(/\+/g, '-').replace(/\//g, '_');

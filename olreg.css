@@ -140,3 +140,8 @@ body.regopen { overflow: hidden; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #reg { --so: #4fd1c5; } }
 :root[data-theme="dark"] #reg { --so: #4fd1c5; }
 #reg table.rbet td:nth-child(3), #reg table.rbet td:nth-child(4), #reg table.rbet th:nth-child(3), #reg table.rbet th:nth-child(4) { color: var(--so); }
+/* v45: Name gesperrt + „ändern“ */
+#reg .rnmw { display: flex; gap: 6px; align-items: center; }
+#reg .rnmw input { flex: 1 1 auto; min-width: 0; }
+#reg .rnmw input[readonly] { opacity: .75; }
+#reg .rnmw button { flex: none; }
