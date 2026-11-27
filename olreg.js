@@ -201,6 +201,9 @@ const whoSp = (p, ok) => `<span class="rwho">${ok ? h(whoT(stOf(p))) : ''}</span
 function okCell(t, p) { t.closest('tr').classList.toggle('rardone', t.checked); const w = t.parentElement.querySelector('.rwho'); if (w) w.textContent = t.checked ? whoT(stOf(p)) : ''; }
 /* Bestücken: Montagehöhen je Mast (m) – Ausleger, Radspanner, feste Abfangung, Mehrgleisausleger */
 const mtF = v => v == null ? '' : v.toFixed(2).replace('.', ',');
+// SO zu MF: Montagehöhe v. MF und v. SO messen zum selben Punkt → SO liegt hMF − hSO über MF (↑) bzw. darunter (↓)
+const soMF = a => { if (a?.ab?.[0] == null || a.ab[2] == null) return ''; const d = Math.round((a.ab[0] - a.ab[2]) * 100) / 100;
+  return (d > 0 ? '↑ ' : d < 0 ? '↓ ' : '± ') + mtF(Math.abs(d)); };
 function mastVis(m, qq, ks) { return !(qq && !(m.id + ' ' + (m.bem || '')).toLowerCase().includes(qq)) && !(ks && !kwEnd(m.id) && !m.stp.some((s, i) => kwOf(m.id + '#' + i) === ks)); }
 function renderBe() {
   const A = B.bestueckung, qq = (q('#rQ').value || '').toLowerCase(), ks = kwSel();
@@ -209,11 +212,11 @@ function renderBe() {
   let o = '';
   B.maste.forEach(m => { const a = A[m.id]; if (!a || !mastVis(m, qq, ks)) return; const ok = !!S.be[m.id];
     const lp = B.lageplan?.[m.id] || B.querprofil?.[m.id];
-    o += `<tr class="${ok ? 'rardone' : ''}"><td class="rarm">${lp ? `<button type="button" class="rlpb" data-lp="${h(m.id)}" title="Lageplan-Ausschnitt">${h(m.id)}</button>` : `<b>${h(m.id)}</b>`}</td><td>${two(a.ab[0], a.ab[1])}</td><td>${two(a.ab[2], a.ab[3])}</td>
+    o += `<tr class="${ok ? 'rardone' : ''}"><td class="rarm">${lp ? `<button type="button" class="rlpb" data-lp="${h(m.id)}" title="Lageplan-Ausschnitt">${h(m.id)}</button>` : `<b>${h(m.id)}</b>`}</td><td>${two(a.ab[0], a.ab[1])}</td><td>${two(a.ab[2], a.ab[3])}</td><td class="rsomf">${soMF(a)}</td>
       <td>${a.rsp.map(mtF).join('<br>')}${a.gfw != null ? `<span class="rgfw">GFW ${mtF(a.gfw)}</span>` : ''}</td><td>${a.fa.map(mtF).join('<br>')}</td><td>${mtF(a.mga)}</td>
       <td><input type="checkbox" data-beok="${h(m.id)}" ${ok ? 'checked' : ''} aria-label="bestückt">${whoSp('be|' + m.id, ok)}</td></tr>`; });
-  q('#r-be').innerHTML = `<p class="rhint rpad">Montagehöhen in m. MF = von Mastfuß, SO = von Schienenoberkante. Ausleger: oben / unten. GFW = Radspanner v. MF-GFW.${B.lageplan || B.querprofil ? ' Unterstrichene Mastnummer antippen = Lageplan' + (B.querprofil ? ', Bild antippen = Querprofil.' : '-Ausschnitt.') : ''}</p>
-    <table class="rart rbet"><thead><tr><th>Mast</th><th>Ausl.<br>MF</th><th>Ausl.<br>SO</th><th>Rsp<br>MF</th><th>FA<br>MF</th><th>MGA<br>MF</th><th>✓</th></tr></thead><tbody>${o || '<tr><td colspan="7" class="rhint">keine Maste</td></tr>'}</tbody></table>`;
+  q('#r-be').innerHTML = `<p class="rhint rpad">Montagehöhen in m. MF = von Mastfuß, SO = von Schienenoberkante. Ausleger: oben / unten. GFW = Radspanner v. MF-GFW. SO/MF: ↑ SO liegt über MF, ↓ SO liegt unter MF.${B.lageplan || B.querprofil ? ' Unterstrichene Mastnummer antippen = Lageplan' + (B.querprofil ? ', Bild antippen = Querprofil.' : '-Ausschnitt.') : ''}</p>
+    <table class="rart rbet"><thead><tr><th>Mast</th><th>Ausl.<br>MF</th><th>Ausl.<br>SO</th><th>SO<br>/MF</th><th>Rsp<br>MF</th><th>FA<br>MF</th><th>MGA<br>MF</th><th>✓</th></tr></thead><tbody>${o || '<tr><td colspan="8" class="rhint">keine Maste</td></tr>'}</tbody></table>`;
 }
 /* Stützpunkte */
 function renderStp() {
@@ -549,15 +552,15 @@ function exportXlsx() {
   if (B.ausrichtung) B.maste.forEach(m => { const a = B.ausrichtung[m.id]; if (!a) return;
     if (k && !kwEnd(m.id) && !m.stp.some((s, i) => kwOf(m.id + '#' + i) === String(k.nr))) return;
     ars.push([m.id, a.t, a.gl || '', ...(a.w || ['', '', '', '']), S.ar[m.id] ? { v: 'ausgerichtet' + xWho('ar|' + m.id), s: 3 } : { v: 'offen', s: 6 }, a.hw || '']); });
-  const bes = [[{ v: 'Bestücken – Montagehöhen [m]', s: 5 }], ['MF = von Mastfuß, SO = von Schienenoberkante'], [],
-    ['Mast', 'Ausl. oben v. MF', 'Ausl. unten v. MF', 'Ausl. oben v. SO', 'Ausl. unten v. SO', 'Rsp v. MF', 'Rsp 2 v. MF', 'GFW v. MF', 'FA v. MF', 'FA 2 v. MF', 'MGA v. MF', 'Status'].map(H)];
+  const bes = [[{ v: 'Bestücken – Montagehöhen [m]', s: 5 }], ['MF = von Mastfuß, SO = von Schienenoberkante; SO zu MF: ↑ SO über MF, ↓ SO unter MF'], [],
+    ['Mast', 'Ausl. oben v. MF', 'Ausl. unten v. MF', 'Ausl. oben v. SO', 'Ausl. unten v. SO', 'SO zu MF', 'Rsp v. MF', 'Rsp 2 v. MF', 'GFW v. MF', 'FA v. MF', 'FA 2 v. MF', 'MGA v. MF', 'Status'].map(H)];
   if (B.bestueckung) B.maste.forEach(m => { const a = B.bestueckung[m.id]; if (!a || (k && !mastVis(m, '', String(k.nr)))) return;
     const c2 = v => v == null ? '' : { v, s: 7 };
-    bes.push([m.id, ...a.ab.map(c2), c2(a.rsp[0]), c2(a.rsp[1]), c2(a.gfw), c2(a.fa[0]), c2(a.fa[1]), c2(a.mga), S.be[m.id] ? { v: 'bestückt' + xWho('be|' + m.id), s: 3 } : { v: 'offen', s: 6 }]); });
+    bes.push([m.id, ...a.ab.map(c2), soMF(a), c2(a.rsp[0]), c2(a.rsp[1]), c2(a.gfw), c2(a.fa[0]), c2(a.fa[1]), c2(a.mga), S.be[m.id] ? { v: 'bestückt' + xWho('be|' + m.id), s: 3 } : { v: 'offen', s: 6 }]); });
   const blob = xlsx([
     { name: 'Fertigmeldung', xml: sheetXml([...kopf, hd, ...body], [9, 5, 9, 10, 7, 28, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 16, 11, 14, 9, 30, 18]) },
     { name: 'Radspanner', xml: sheetXml(rs, [5, 30, 10, 11, 12, 11, 10, 30]) },
-    ...(B.bestueckung ? [{ name: 'Bestücken', xml: sheetXml(bes, [10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 11]) }] : []),
+    ...(B.bestueckung ? [{ name: 'Bestücken', xml: sheetXml(bes, [10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 11]) }] : []),
     ...(B.ausrichtung ? [{ name: 'Ausrichtung', xml: sheetXml(ars, [10, 6, 18, 8, 8, 8, 8, 13, 34]) }] : []),
     { name: 'Zusammenfassung', xml: sheetXml(sum, [18, 12, 12, 30]) },
     ...(() => { const kk = korrekturen().filter(x => !k || kwOf(x.key) === String(k.nr)), lg = (B.meta.korrekturen || []).filter(x => !k || kwOf(x.mast + '#' + (x.stp - 1)) === String(k.nr));
