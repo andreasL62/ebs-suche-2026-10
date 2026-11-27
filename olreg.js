@@ -44,7 +44,9 @@ const nowIso = () => new Date().toISOString();
 function stamp(p) { (S.st ||= {})[p] = [nowIso(), S.g.Name || '']; syQueue(p); }
 const stOf = p => S.st?.[p];
 const dtT = t => new Date(t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-const whoT = s => s ? `${s[1] || '?'} ${dtT(s[0])}` : '';
+const whoT = s => s ? `${nmA(s[1] || '?')} ${dtT(s[0])}` : '';
+// Admin-Name mit ★ kennzeichnen (Admin = cf|adm.n, auch nach Namensänderung über al|)
+const nmA = n => n && S?.cf?.adm && nmOf(n) === nmOf(S.cf.adm.n) ? n + ' ★' : n;
 function lastOf(pre) { let b = null; for (const p in S.st || {}) if (p.startsWith(pre) && (!b || S.st[p][0] > b[0])) b = S.st[p]; return b; }
 const cfg = () => S.cfg;
 const T = () => num(S.g.T);
@@ -326,8 +328,8 @@ function syncInfo() { const mine = Object.values(S.st || {}).filter(s => s[1] ==
   const oth = Object.entries(S.sy || {}).sort((a, b) => b[1].localeCompare(a[1])).map(([n, t]) => `${h(n || '?')} (${dtT(t)})`);
   const pr = {}; for (const [p, s] of Object.entries(S.st || {})) { if (/^(al|rq|cf)\|/.test(p)) continue; const n = s[1] || '?', x = pr[n] ||= { c: 0, t: '' }; x.c++; if (s[0] > x.t) x.t = s[0]; }
   for (const [n, t] of Object.entries(S.sy || {})) { const x = pr[n || '?'] ||= { c: 0, t: '' }; if (t > x.t) x.t = t; }
-  const prL = Object.entries(pr).sort((a, b) => b[1].t.localeCompare(a[1].t)).map(([n, x]) => `<tr><td>${h(n)}${n === S.g.Name ? ' (du)' : ''}</td><td>${x.c}</td><td>${x.t ? dtT(x.t) : ''}</td><td>${isAdm() && n !== (S.g.Name || '') && Object.keys(pr).length > 1 ? `<button type="button" class="secbtn rmg" data-mg="${h(n === '?' ? '' : n)}" title="Einträge dieses Namens einem anderen Namen zuordnen (z. B. nach Namensänderung)">zusammenführen</button>` : ''}</td></tr>`).join('');
-  const prT = prL ? `<div class="rtw"><table class="rprl"><tr><th>Prüfer / Trupp</th><th>Einträge</th><th>zuletzt</th><th></th></tr>${prL}</table></div>
+  const prL = Object.entries(pr).sort((a, b) => b[1].t.localeCompare(a[1].t)).map(([n, x]) => `<tr><td>${h(nmA(n))}${n === S.g.Name ? ' (du)' : ''}</td><td>${x.c}</td><td>${x.t ? dtT(x.t) : ''}</td><td>${isAdm() && n !== (S.g.Name || '') && Object.keys(pr).length > 1 ? `<button type="button" class="secbtn rmg" data-mg="${h(n === '?' ? '' : n)}" title="Einträge dieses Namens einem anderen Namen zuordnen (z. B. nach Namensänderung)">zusammenführen</button>` : ''}</td></tr>`).join('');
+  const prT = prL ? `<div class="rtw"><table class="rprl"><tr><th>Prüfer / Trupp</th><th>Einträge</th><th>zuletzt</th><th></th></tr>${prL}</table></div>${admOf() ? '<p class="rhint">★ = Admin</p>' : ''}
     ${isAdm() ? '<p class="rhint">Doppelter Name für dieselbe Person: beim alten Namen „zusammenführen“ tippen. Die Einträge zählen dann zum neuen Namen, auch bei den Kollegen.</p>' : ''}` : '';
   const rqs = Object.entries(S.rq || {}).filter(([, n]) => n);
   const rqT = isAdm() ? (rqs.length ? `<div class="rnote"><b>Namensänderung beantragt</b>${rqs.map(([a, n]) => `<p class="rrow">${h(a)} → <b>${h(n)}</b> <button type="button" class="primarybtn" data-rq="${h(a)}" data-ok="1">Freigeben</button><button type="button" class="secbtn" data-rq="${h(a)}" data-ok="0">Ablehnen</button></p>`).join('')}</div>` : '')
@@ -432,8 +434,8 @@ async function admSetup() {
   const p1 = await askPin(`Admin einrichten für „${myN()}“. Neue PIN aus mindestens 6 Ziffern – gut merken, sie steht nirgends.`, true); if (p1 == null) return;
   const h = await pinHash(p1); S.cf.adm = { n: myN(), h }; stamp('cf|adm'); S.g.admH = h; save(); render(); }
 function admCard() { const a = admOf();
-  return `<h3>Admin</h3><p class="rhint">${a ? (isAdm() ? `<b>Du bist Admin</b> (${h(a.n)}). Du gibst Namensänderungen frei (Reiter Meldung) und darfst auch fremde Haken entfernen.`
-    : `Admin: <b>${h(a.n)}</b>. Namen ändern nur mit seiner Freigabe; Haken entfernen nur die eigenen.`)
+  return `<h3>Admin</h3><p class="rhint">${a ? (isAdm() ? `<b>Du bist Admin</b> (${h(a.n)} ★). Du gibst Namensänderungen frei (Reiter Meldung) und darfst auch fremde Haken entfernen.`
+    : `Admin: <b>${h(a.n)} ★</b>. Namen ändern nur mit seiner Freigabe; Haken entfernen nur die eigenen.`)
     : 'Noch kein Admin. Wer Admin wird, gibt Namensänderungen frei und darf fremde Haken entfernen. Die anderen dürfen nur ihre eigenen Haken entfernen.'}</p>
     <p class="rrow"><button type="button" class="secbtn" id="rAdm">${a ? (isAdm() ? 'Admin abmelden' : 'Als Admin anmelden (PIN)') : 'Admin einrichten'}</button></p>`; }
 /* Haken: Pfad des Kontrollkästchens; Entfernen nur durch den, der ihn gesetzt hat, oder den Admin */
@@ -509,7 +511,7 @@ function cleanKorr() { let n = 0; stpList().forEach(({ m, s, key }) => { const r
 REG.addEventListener('input', e => { const t = e.target; if (!B) return;
   if (t.type === 'checkbox' && !t.checked) { const p = tickPath(t);
     if (p && !mayUntick(p)) { t.checked = true; const s = stOf(p); const o = tickOwner(p), oa = o === nmOf(admOf()?.n || '');
-      alert(`Abgehakt von ${o}${s ? ' am ' + dtT(s[0]) : ''}.\nEntfernen kann nur ${o}${oa ? ' (Admin)' : ' selbst oder der Admin'}.`); return; } }
+      alert(`Abgehakt von ${nmA(o)}${s ? ' am ' + dtT(s[0]) : ''}.\nEntfernen kann nur ${o}${oa ? ' (Admin)' : ' selbst oder der Admin'}.`); return; } }
   if (t.id === 'rName' && t.readOnly) return;
   if (t.dataset.km) { S.km[t.dataset.km] = t.value; stamp('km|' + t.dataset.km); save(); return; }
   if (t.dataset.beok) { if (t.checked) S.be[t.dataset.beok] = nowIso(); else delete S.be[t.dataset.beok]; stamp('be|' + t.dataset.beok); okCell(t, 'be|' + t.dataset.beok); save(); return; }
@@ -616,7 +618,7 @@ function xlsx(sheets) {
     ['xl/_rels/workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
     ['xl/styles.xml', styles], ...sheets.map((s, i) => [`xl/worksheets/sheet${i + 1}.xml`, s.xml])];
   return zip(files); }
-const xWho = p => { const s = stOf(p); return s && s[1] ? ' – ' + s[1] : ''; };
+const xWho = p => { const s = stOf(p); return s && s[1] ? ' – ' + nmA(s[1]) : ''; };
 function exportXlsx() {
   const c = cfg(), k = kwObj(), all = rowsFor(), H = v => ({ v, s: 2 }), mm = v => v == null || v === '' ? '' : Math.round(num(v));
   const stCell = st => st === 'ok' ? { v: 'i.O.', s: 3 } : st === 'nok' ? { v: 'außer Toleranz', s: 4 } : { v: 'offen', s: 6 };
