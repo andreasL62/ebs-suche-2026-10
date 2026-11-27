@@ -135,3 +135,8 @@ body.regopen { overflow: hidden; }
   #reg table.rbet td { font-size: 13px; }
   #reg table.rart .rwho { width: 50px; font-size: 9px; }
 }
+/* v43: Best. – Werte von Schienenoberkante (Ausl. SO, SO/MF) farbig */
+#reg { --so: #0e7490; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #reg { --so: #4fd1c5; } }
+:root[data-theme="dark"] #reg { --so: #4fd1c5; }
+#reg table.rbet td:nth-child(3), #reg table.rbet td:nth-child(4), #reg table.rbet th:nth-child(3), #reg table.rbet th:nth-child(4) { color: var(--so); }
