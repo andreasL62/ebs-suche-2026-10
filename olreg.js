@@ -407,16 +407,30 @@ async function nameChange() { const old = myN(); if (!old) return;
 function rqDo(alt, ok) { if (!isAdm()) return; const n = S.rq?.[alt]; if (!n) return;
   if (ok) { if (S.al[n] === alt) delete S.al[n]; S.al[alt] = n; stamp('al|' + alt); }
   delete S.rq[alt]; stamp('rq|' + alt); applyAl(); save(); render(); }
+/* PIN-Eingabe mit Ziffernblock (inputmode numeric) statt prompt(); twice = zweites Feld zum Wiederholen.
+   Liefert die PIN oder null (Abbrechen). Fokus sofort im Klick, sonst öffnet iOS keine Tastatur. */
+function askPin(text, twice) { return new Promise(res => {
+  const w = document.createElement('div'); w.className = 'rpin'; w.setAttribute('role', 'dialog');
+  const f = l => `<label>${l}<input type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="12"></label>`;
+  w.innerHTML = `<form class="rpinb"><p>${h(text)}</p>${f('PIN')}${twice ? f('PIN wiederholen') : ''}<p class="rhint" data-err></p>
+    <p class="rrow"><button type="submit" class="primarybtn">OK</button><button type="button" class="secbtn" data-x>Abbrechen</button></p></form>`;
+  REG.appendChild(w); const ins = [...w.querySelectorAll('input')], err = w.querySelector('[data-err]');
+  ins.forEach(i => i.addEventListener('input', () => { i.value = i.value.replace(/\D/g, ''); err.textContent = ''; }));
+  const end = v => { w.remove(); res(v); };
+  w.querySelector('[data-x]').onclick = () => end(null);
+  w.querySelector('form').onsubmit = e => { e.preventDefault(); const v = ins[0].value;
+    if (twice && v.length < 6) { err.textContent = 'Mindestens 6 Ziffern.'; ins[0].focus(); return; }
+    if (twice && ins[1].value !== v) { err.textContent = 'PINs stimmen nicht überein.'; ins[1].value = ''; ins[1].focus(); return; }
+    end(v); };
+  ins[0].focus(); }); }
 async function admSetup() {
   if (isAdm()) { if (confirm('Admin auf diesem Gerät abmelden? (Wieder anmelden mit der PIN.)')) { delete S.g.admH; save(); render(); } return; }
-  if (admOf()) { const p = prompt(`Admin ist ${admOf().n}. PIN eingeben:`); if (p == null) return;
-    if (await pinHash(p.trim()) !== admOf().h) return alert('PIN falsch.');
+  if (admOf()) { const p = await askPin(`Admin ist ${admOf().n}. PIN eingeben:`); if (p == null) return;
+    if (await pinHash(p) !== admOf().h) return alert('PIN falsch.');
     S.g.admH = admOf().h; save(); render(); return; }
   if (!myN()) return alert('Zuerst oben unter ⋯ „Prüfer / Trupp“ deinen Namen eintragen.');
-  const p1 = prompt(`Admin einrichten für „${myN()}“.\nNeue PIN (mind. 6 Zeichen) – gut merken, sie steht nirgends:`); if (p1 == null) return;
-  if (p1.trim().length < 6) return alert('PIN zu kurz (mind. 6 Zeichen).');
-  if (prompt('PIN wiederholen:') !== p1) return alert('PINs stimmen nicht überein.');
-  const h = await pinHash(p1.trim()); S.cf.adm = { n: myN(), h }; stamp('cf|adm'); S.g.admH = h; save(); render(); }
+  const p1 = await askPin(`Admin einrichten für „${myN()}“. Neue PIN aus mindestens 6 Ziffern – gut merken, sie steht nirgends.`, true); if (p1 == null) return;
+  const h = await pinHash(p1); S.cf.adm = { n: myN(), h }; stamp('cf|adm'); S.g.admH = h; save(); render(); }
 function admCard() { const a = admOf();
   return `<h3>Admin</h3><p class="rhint">${a ? (isAdm() ? `<b>Du bist Admin</b> (${h(a.n)}). Du gibst Namensänderungen frei (Reiter Meldung) und darfst auch fremde Haken entfernen.`
     : `Admin: <b>${h(a.n)}</b>. Namen ändern nur mit seiner Freigabe; Haken entfernen nur die eigenen.`)

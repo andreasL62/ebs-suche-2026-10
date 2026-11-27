@@ -145,3 +145,12 @@ body.regopen { overflow: hidden; }
 #reg .rnmw input { flex: 1 1 auto; min-width: 0; }
 #reg .rnmw input[readonly] { opacity: .75; }
 #reg .rnmw button { flex: none; }
+/* v46: PIN-Dialog mit Ziffernblock */
+#reg .rpin { position: fixed; inset: 0; z-index: 80; display: flex; align-items: flex-start; justify-content: center;
+  padding: calc(60px + env(safe-area-inset-top)) 16px 16px; background: rgba(0,0,0,.5); }
+#reg .rpinb { width: 100%; max-width: 360px; background: var(--panel); color: var(--text); border: 1px solid var(--line);
+  border-radius: 14px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+#reg .rpinb p { margin: 0 0 10px; }
+#reg .rpinb label { display: block; margin-bottom: 10px; font-size: 14px; color: var(--muted); }
+#reg .rpinb input { display: block; width: 100%; margin-top: 4px; font-size: 24px; letter-spacing: 6px; text-align: center; padding: 8px; }
+#reg .rpinb [data-err] { color: #c62828; min-height: 1em; }
